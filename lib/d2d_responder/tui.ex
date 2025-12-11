@@ -188,28 +188,29 @@ defmodule D2dResponder.TUI do
   end
 
   defp execute_action(:lora_connect) do
-    with_spinner("Connecting to LoRa module...", fn ->
-      case LoRa.connect("/dev/ttyACM0") do
-        :ok ->
-          # Give the module time to initialize after connect
-          Process.sleep(500)
-          # pause_mac can be slow - try it but don't fail if it times out
-          # (the module might already be paused or respond slowly)
-          case LoRa.send_command("mac pause", 5_000) do
-            {:ok, response} ->
-              puts_colored("  mac pause: #{response}", :green)
-              :ok
-            {:error, :timeout} ->
-              puts_colored("  mac pause timed out (may already be paused)", :yellow)
-              :ok
-            {:error, reason} ->
-              puts_colored("  mac pause: #{inspect(reason)}", :yellow)
-              :ok
-          end
-        error -> error
-      end
-    end)
-    |> print_result("LoRa")
+    IO.write("  Connecting to LoRa module... ")
+
+    case LoRa.connect("/dev/ttyACM0") do
+      :ok ->
+        puts_colored("✓", :green)
+        # Give the module time to initialize after connect
+        Process.sleep(500)
+        # pause_mac can be slow - try it but don't fail if it times out
+        IO.write("  Pausing MAC layer... ")
+        case LoRa.send_command("mac pause", 5_000) do
+          {:ok, response} ->
+            puts_colored("✓ (#{response})", :green)
+          {:error, :timeout} ->
+            puts_colored("timeout (may already be paused)", :yellow)
+          {:error, reason} ->
+            puts_colored("#{inspect(reason)}", :yellow)
+        end
+        puts_colored("LoRa ready.", :green)
+
+      {:error, reason} ->
+        puts_colored("✗", :red)
+        puts_colored("LoRa connect failed: #{inspect(reason)}", :red)
+    end
   end
 
   defp execute_action(:lora_echo) do
@@ -335,6 +336,13 @@ defmodule D2dResponder.TUI do
     e ->
       puts_colored("✗ #{inspect(e)}", :red)
       {:error, e}
+  catch
+    :exit, {:timeout, _} ->
+      puts_colored("✗ timeout", :red)
+      {:error, :timeout}
+    :exit, reason ->
+      puts_colored("✗ exit: #{inspect(reason)}", :red)
+      {:error, reason}
   end
 
   defp print_result(:ok, service), do: puts_colored("#{service} operation completed.", :green)
