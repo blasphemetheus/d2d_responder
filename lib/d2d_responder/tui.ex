@@ -193,10 +193,18 @@ defmodule D2dResponder.TUI do
         :ok ->
           # Give the module time to initialize after connect
           Process.sleep(500)
-          # pause_mac can be slow, use longer timeout
-          case LoRa.send_command("mac pause", 10_000) do
-            {:ok, _} -> :ok
-            {:error, reason} -> {:error, "mac pause failed: #{inspect(reason)}"}
+          # pause_mac can be slow - try it but don't fail if it times out
+          # (the module might already be paused or respond slowly)
+          case LoRa.send_command("mac pause", 5_000) do
+            {:ok, response} ->
+              puts_colored("  mac pause: #{response}", :green)
+              :ok
+            {:error, :timeout} ->
+              puts_colored("  mac pause timed out (may already be paused)", :yellow)
+              :ok
+            {:error, reason} ->
+              puts_colored("  mac pause: #{inspect(reason)}", :yellow)
+              :ok
           end
         error -> error
       end
