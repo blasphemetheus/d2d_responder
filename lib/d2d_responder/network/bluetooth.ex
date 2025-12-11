@@ -138,21 +138,52 @@ defmodule D2dResponder.Network.Bluetooth do
   defp do_start_server(ip) do
     script = scripts_path("bt_server_start.sh")
     Logger.info("Bluetooth: Running script #{script} with IP #{ip}")
+    Logger.info("Bluetooth: Script exists? #{File.exists?(script)}")
 
-    # Run directly - the script should complete quickly
-    case System.cmd("sudo", [script, ip], stderr_to_stdout: true) do
-      {output, 0} ->
-        Logger.info("Bluetooth server start output: #{output}")
-        :ok
+    # Use Port.open instead of System.cmd to avoid potential hanging
+    try do
+      port = Port.open({:spawn_executable, "/usr/bin/sudo"}, [
+        :binary,
+        :exit_status,
+        :stderr_to_stdout,
+        args: [script, ip]
+      ])
 
-      {output, code} ->
-        Logger.error("Bluetooth server start failed (exit #{code}): #{output}")
-        {:error, output}
+      receive do
+        {^port, {:data, data}} ->
+          Logger.info("Bluetooth script output: #{data}")
+          receive do
+            {^port, {:exit_status, 0}} ->
+              Logger.info("Bluetooth: Script completed successfully")
+              :ok
+            {^port, {:exit_status, code}} ->
+              Logger.error("Bluetooth: Script exited with code #{code}")
+              {:error, "exit code #{code}"}
+          after
+            25_000 ->
+              Port.close(port)
+              Logger.error("Bluetooth: Timed out waiting for exit status")
+              {:error, "timeout"}
+          end
+
+        {^port, {:exit_status, 0}} ->
+          Logger.info("Bluetooth: Script completed successfully (no output)")
+          :ok
+
+        {^port, {:exit_status, code}} ->
+          Logger.error("Bluetooth: Script exited with code #{code}")
+          {:error, "exit code #{code}"}
+      after
+        25_000 ->
+          Port.close(port)
+          Logger.error("Bluetooth: Timed out waiting for script")
+          {:error, "timeout"}
+      end
+    rescue
+      e ->
+        Logger.error("Bluetooth server start exception: #{inspect(e)}")
+        {:error, inspect(e)}
     end
-  rescue
-    e ->
-      Logger.error("Bluetooth server start exception: #{inspect(e)}")
-      {:error, inspect(e)}
   end
 
   defp do_stop_server do
