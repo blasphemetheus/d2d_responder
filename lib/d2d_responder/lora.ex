@@ -184,8 +184,22 @@ defmodule D2dResponder.LoRa do
   # Private
 
   defp wake_up_module(uart) do
+    # Toggle DTR and RTS to reset/wake the module (like Tera Term does)
+    Logger.info("LoRa: Toggling DTR/RTS to wake module...")
+    Circuits.UART.set_dtr(uart, false)
+    Circuits.UART.set_rts(uart, false)
+    Process.sleep(100)
+    Circuits.UART.set_dtr(uart, true)
+    Circuits.UART.set_rts(uart, true)
+    Process.sleep(500)
+
+    # Send break signal to reset module
+    Logger.info("LoRa: Sending break signal...")
+    Circuits.UART.send_break(uart, 250)
+    Process.sleep(300)
+
     # Flush any garbage and send wake-up CRLFs
-    Logger.info("LoRa: Sending wake-up sequence...")
+    Logger.info("LoRa: Sending wake-up CRLFs...")
     Circuits.UART.flush(uart)
     Circuits.UART.write(uart, "\r\n\r\n\r\n")
     Process.sleep(200)
