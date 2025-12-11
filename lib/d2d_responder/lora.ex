@@ -1,6 +1,9 @@
 defmodule D2dResponder.LoRa do
   @moduledoc """
-  GenServer for RN2483 LoRa module communication.
+  GenServer for RN2903 LoRa module communication.
+
+  The RN2903 uses 57600 baud, 8N1, and requires CRLF line endings
+  for both commands and responses.
   """
   use GenServer
   require Logger
@@ -117,8 +120,7 @@ defmodule D2dResponder.LoRa do
 
     {:ok, uart} = Circuits.UART.start_link()
 
-    # RN2483 settings: 57600 baud, 8N1, no flow control
-    # RN2483 expects CR only for commands, responds with CRLF
+    # RN2903 settings: 57600 baud, 8N1, no flow control, CRLF line endings
     uart_opts = [
       speed: @default_baud,
       data_bits: 8,
@@ -132,8 +134,8 @@ defmodule D2dResponder.LoRa do
     case Circuits.UART.open(uart, port, uart_opts) do
       :ok ->
         Circuits.UART.flush(uart)
-        # Send a few CRs to clear any garbage and wake up the module
-        Circuits.UART.write(uart, "\r\r\r")
+        # Send a few CRLFs to clear any garbage and wake up the module
+        Circuits.UART.write(uart, "\r\n\r\n")
         Process.sleep(200)
         Circuits.UART.flush(uart)
         Logger.info("Connected to #{port}")
@@ -155,8 +157,8 @@ defmodule D2dResponder.LoRa do
   def handle_call({:send_command, cmd}, from, state) do
     if state.connected do
       Logger.debug("UART TX: #{inspect(cmd)}")
-      # RN2483 expects commands terminated with CR only (not CRLF)
-      Circuits.UART.write(state.uart, "#{cmd}\r")
+      # RN2903 expects commands terminated with CRLF
+      Circuits.UART.write(state.uart, "#{cmd}\r\n")
       {:noreply, %{state | pending_response: from}}
     else
       {:reply, {:error, :not_connected}, state}
