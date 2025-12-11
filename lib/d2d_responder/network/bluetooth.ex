@@ -79,6 +79,13 @@ defmodule D2dResponder.Network.Bluetooth do
     end
   end
 
+  # Catch-all for any unexpected port messages
+  @impl true
+  def handle_info(msg, state) do
+    Logger.debug("Bluetooth: Unexpected message: #{inspect(msg)}")
+    {:noreply, state}
+  end
+
   @impl true
   def handle_call({:start_server, ip}, _from, state) do
     case do_start_server(ip) do

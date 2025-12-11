@@ -25,12 +25,14 @@ if ! command -v bt-network &> /dev/null; then
     exit 1
 fi
 
-bt-network -s nap pan0 &
+# Start bt-network with nohup so it detaches completely
+nohup bt-network -s nap pan0 >/dev/null 2>&1 &
 sleep 2
 
-# Configure pan0 interface
+# Configure pan0 interface (may not exist until client connects)
 ip link set pan0 up 2>/dev/null || true
 ip addr flush dev pan0 2>/dev/null || true
 ip addr add "$IP/24" dev pan0 2>/dev/null || true
 
-echo "OK: Bluetooth NAP server running on pan0 at $IP"
+echo "OK: Bluetooth NAP server running"
+exit 0
