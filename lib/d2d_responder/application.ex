@@ -11,7 +11,11 @@ defmodule D2dResponder.Application do
       D2dResponder.FileLogger,
       D2dResponder.LoRa,
       D2dResponder.Beacon,
-      D2dResponder.Echo
+      D2dResponder.Echo,
+      # Network services (auto-start for field testing)
+      D2dResponder.Network.WiFi,
+      D2dResponder.Network.Bluetooth,
+      D2dResponder.Network.Responder
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -1,0 +1,154 @@
+defmodule D2dResponder.Network.Bluetooth do
+  @moduledoc """
+  GenServer for Bluetooth PAN NAP server on Raspberry Pi.
+  Auto-starts NAP server on init.
+  """
+  use GenServer
+  require Logger
+
+  @default_ip "192.168.44.1"
+  @peer_ip "192.168.44.2"
+
+  # Client API
+
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  end
+
+  def start_server(ip \\ @default_ip) do
+    GenServer.call(__MODULE__, {:start_server, ip}, 30_000)
+  end
+
+  def stop_server do
+    GenServer.call(__MODULE__, :stop_server, 30_000)
+  end
+
+  def connected? do
+    GenServer.call(__MODULE__, :connected?)
+  end
+
+  def get_status do
+    GenServer.call(__MODULE__, :get_status)
+  end
+
+  def get_peer_ip do
+    @peer_ip
+  end
+
+  # Server callbacks
+
+  @impl true
+  def init(opts) do
+    state = %{
+      connected: false,
+      ip: @default_ip,
+      peer_ip: @peer_ip,
+      auto_start: Keyword.get(opts, :auto_start, true)
+    }
+
+    # Auto-start Bluetooth NAP server if configured
+    if state.auto_start do
+      send(self(), :auto_setup)
+    end
+
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_info(:auto_setup, state) do
+    Logger.info("Bluetooth: Auto-starting NAP server...")
+    case do_start_server(state.ip) do
+      :ok ->
+        Logger.info("Bluetooth: NAP server started on pan0 at #{state.ip}")
+        D2dResponder.FileLogger.log_event("BT_SERVER_STARTED: pan0 at #{state.ip}")
+        {:noreply, %{state | connected: true}}
+
+      {:error, reason} ->
+        Logger.error("Bluetooth: Auto-setup failed: #{inspect(reason)}")
+        # Retry after 5 seconds
+        Process.send_after(self(), :auto_setup, 5_000)
+        {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:start_server, ip}, _from, state) do
+    case do_start_server(ip) do
+      :ok ->
+        D2dResponder.FileLogger.log_event("BT_SERVER_STARTED: pan0 at #{ip}")
+        {:reply, :ok, %{state | ip: ip, connected: true}}
+
+      {:error, _reason} = error ->
+        {:reply, error, state}
+    end
+  end
+
+  @impl true
+  def handle_call(:stop_server, _from, state) do
+    do_stop_server()
+    D2dResponder.FileLogger.log_event("BT_SERVER_STOPPED")
+    {:reply, :ok, %{state | connected: false}}
+  end
+
+  @impl true
+  def handle_call(:connected?, _from, state) do
+    {:reply, state.connected, state}
+  end
+
+  @impl true
+  def handle_call(:get_status, _from, state) do
+    status = %{
+      connected: state.connected,
+      mode: :server,
+      interface: "pan0",
+      ip: state.ip,
+      peer_ip: state.peer_ip
+    }
+    {:reply, status, state}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    if state.connected do
+      Logger.info("Bluetooth: Cleaning up NAP server...")
+      do_stop_server()
+    end
+    :ok
+  end
+
+  # Private functions
+
+  defp do_start_server(ip) do
+    script = scripts_path("bt_server_start.sh")
+
+    case System.cmd("sudo", [script, ip], stderr_to_stdout: true) do
+      {output, 0} ->
+        Logger.debug("Bluetooth server start output: #{output}")
+        :ok
+
+      {output, code} ->
+        Logger.error("Bluetooth server start failed (exit #{code}): #{output}")
+        {:error, output}
+    end
+  end
+
+  defp do_stop_server do
+    script = scripts_path("bt_server_stop.sh")
+
+    case System.cmd("sudo", [script], stderr_to_stdout: true) do
+      {output, 0} ->
+        Logger.debug("Bluetooth server stop output: #{output}")
+        :ok
+
+      {output, code} ->
+        Logger.warning("Bluetooth server stop issue (exit #{code}): #{output}")
+        :ok
+    end
+  end
+
+  defp scripts_path(script_name) do
+    :code.priv_dir(:d2d_responder)
+    |> to_string()
+    |> Path.join("scripts/#{script_name}")
+  end
+end
