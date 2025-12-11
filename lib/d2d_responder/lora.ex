@@ -118,6 +118,7 @@ defmodule D2dResponder.LoRa do
     {:ok, uart} = Circuits.UART.start_link()
 
     # RN2483 settings: 57600 baud, 8N1, no flow control
+    # RN2483 expects CR only for commands, responds with CRLF
     uart_opts = [
       speed: @default_baud,
       data_bits: 8,
@@ -131,8 +132,8 @@ defmodule D2dResponder.LoRa do
     case Circuits.UART.open(uart, port, uart_opts) do
       :ok ->
         Circuits.UART.flush(uart)
-        # Send a few newlines to clear any garbage and wake up the module
-        Circuits.UART.write(uart, "\r\n\r\n")
+        # Send a few CRs to clear any garbage and wake up the module
+        Circuits.UART.write(uart, "\r\r\r")
         Process.sleep(200)
         Circuits.UART.flush(uart)
         Logger.info("Connected to #{port}")
@@ -154,7 +155,8 @@ defmodule D2dResponder.LoRa do
   def handle_call({:send_command, cmd}, from, state) do
     if state.connected do
       Logger.debug("UART TX: #{inspect(cmd)}")
-      Circuits.UART.write(state.uart, "#{cmd}\r\n")
+      # RN2483 expects commands terminated with CR only (not CRLF)
+      Circuits.UART.write(state.uart, "#{cmd}\r")
       {:noreply, %{state | pending_response: from}}
     else
       {:reply, {:error, :not_connected}, state}
