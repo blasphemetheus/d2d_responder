@@ -135,17 +135,9 @@ defmodule D2dResponder.LoRa do
     case Circuits.UART.open(uart, port, uart_opts) do
       :ok ->
         # Wake up the module and verify communication
-        case wake_up_module(uart) do
-          {:ok, version} ->
-            Logger.info("Connected to #{port} - #{version}")
-            {:reply, :ok, %{state | uart: uart, port: port, connected: true}}
-
-          {:error, reason} ->
-            Logger.error("Failed to wake up LoRa module: #{inspect(reason)}")
-            Circuits.UART.close(uart)
-            Circuits.UART.stop(uart)
-            {:reply, {:error, reason}, state}
-        end
+        {:ok, version} = wake_up_module(uart)
+        Logger.info("Connected to #{port} - #{version}")
+        {:reply, :ok, %{state | uart: uart, port: port, connected: true}}
 
       {:error, reason} ->
         Circuits.UART.stop(uart)
@@ -193,10 +185,19 @@ defmodule D2dResponder.LoRa do
     Circuits.UART.set_rts(uart, true)
     Process.sleep(500)
 
-    # Send break signal to reset module
+    # Send break signal to reset module (optional - may not be supported by all adapters)
+    # Note: circuits_uart has a bug where send_break raises MatchError on unsupported devices
     Logger.info("LoRa: Sending break signal...")
-    Circuits.UART.send_break(uart, 250)
-    Process.sleep(300)
+    try do
+      case Circuits.UART.send_break(uart, 250) do
+        :ok -> Process.sleep(300)
+        {:error, _reason} ->
+          Logger.warning("LoRa: Break signal not supported by this adapter, skipping...")
+      end
+    rescue
+      MatchError ->
+        Logger.warning("LoRa: Break signal not supported by this adapter, skipping...")
+    end
 
     # Flush any garbage and send wake-up CRLFs
     Logger.info("LoRa: Sending wake-up CRLFs...")

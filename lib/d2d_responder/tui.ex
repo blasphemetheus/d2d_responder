@@ -292,41 +292,6 @@ defmodule D2dResponder.TUI do
     end
   end
 
-  defp lora_raw_loop do
-    IO.write(Owl.Data.tag("lora> ", :yellow) |> Owl.Data.to_chardata())
-    cmd = IO.gets("") |> String.trim()
-
-    cond do
-      cmd == "" ->
-        lora_raw_loop()
-
-      cmd == "exit" ->
-        puts_colored("Exiting raw command mode.", :cyan)
-
-      true ->
-        case LoRa.send_command(cmd, 5_000) do
-          {:ok, response} ->
-            puts_colored("< #{response}", :green)
-          {:error, :timeout} ->
-            puts_colored("< timeout", :red)
-          {:error, reason} ->
-            puts_colored("< error: #{inspect(reason)}", :red)
-        end
-        lora_raw_loop()
-    end
-  rescue
-    _ ->
-      puts_colored("Error sending command", :red)
-      lora_raw_loop()
-  catch
-    :exit, {:timeout, _} ->
-      puts_colored("< timeout", :red)
-      lora_raw_loop()
-    :exit, reason ->
-      puts_colored("< exit: #{inspect(reason)}", :red)
-      lora_raw_loop()
-  end
-
   defp execute_action(:status) do
     puts_colored("\n── Detailed Status ──", :blue)
 
@@ -363,6 +328,41 @@ defmodule D2dResponder.TUI do
     IO.puts("\niperf3 Server:")
     IO.puts("  Running: #{iperf.running}")
     IO.puts("  Port: #{iperf.port || "N/A"}")
+  end
+
+  defp lora_raw_loop do
+    IO.write(Owl.Data.tag("lora> ", :yellow) |> Owl.Data.to_chardata())
+    cmd = IO.gets("") |> String.trim()
+
+    cond do
+      cmd == "" ->
+        lora_raw_loop()
+
+      cmd == "exit" ->
+        puts_colored("Exiting raw command mode.", :cyan)
+
+      true ->
+        case LoRa.send_command(cmd, 5_000) do
+          {:ok, response} ->
+            puts_colored("< #{response}", :green)
+          {:error, :timeout} ->
+            puts_colored("< timeout", :red)
+          {:error, reason} ->
+            puts_colored("< error: #{inspect(reason)}", :red)
+        end
+        lora_raw_loop()
+    end
+  rescue
+    _ ->
+      puts_colored("Error sending command", :red)
+      lora_raw_loop()
+  catch
+    :exit, {:timeout, _} ->
+      puts_colored("< timeout", :red)
+      lora_raw_loop()
+    :exit, reason ->
+      puts_colored("< exit: #{inspect(reason)}", :red)
+      lora_raw_loop()
   end
 
   defp with_spinner(message, func) do
