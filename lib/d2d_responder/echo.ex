@@ -95,12 +95,13 @@ defmodule D2dResponder.Echo do
       case LoRa.transmit(response) do
         {:ok, _} ->
           Logger.debug("Echo TX: #{response}")
-          # Resume listening after TX
-          start_listening()
+          # Don't start listening here - wait for lora_tx_ok/lora_tx_error
+          # TX is async, module is busy until we get the callback
           {:noreply, %{state | rx_count: state.rx_count + 1, tx_count: state.tx_count + 1}}
 
         {:error, reason} ->
           Logger.warning("Echo TX failed: #{inspect(reason)}")
+          # TX failed immediately, resume listening
           start_listening()
           {:noreply, %{state | rx_count: state.rx_count + 1}}
       end
