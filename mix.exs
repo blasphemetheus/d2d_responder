@@ -23,7 +23,8 @@ defmodule D2dResponder.MixProject do
   defp deps do
     [
       {:circuits_uart, "~> 1.5"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:owl, "~> 0.12"}
     ]
   end
 end
