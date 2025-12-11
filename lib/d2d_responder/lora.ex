@@ -270,6 +270,7 @@ defmodule D2dResponder.LoRa do
   end
 
   defp handle_async_response("radio_rx " <> hex, subscribers) do
+    hex = String.trim(hex)
     case Base.decode16(hex, case: :mixed) do
       {:ok, data} ->
         D2dResponder.FileLogger.log_rx(data, hex)
