@@ -68,6 +68,10 @@ defmodule D2dResponder.LoRa do
     GenServer.call(__MODULE__, {:subscribe, pid})
   end
 
+  def unsubscribe(pid) do
+    GenServer.call(__MODULE__, {:unsubscribe, pid})
+  end
+
   # Server callbacks
 
   @impl true
@@ -170,7 +174,17 @@ defmodule D2dResponder.LoRa do
 
   @impl true
   def handle_call({:subscribe, pid}, _from, state) do
-    {:reply, :ok, %{state | subscribers: [pid | state.subscribers]}}
+    # Only add if not already subscribed
+    if pid in state.subscribers do
+      {:reply, :ok, state}
+    else
+      {:reply, :ok, %{state | subscribers: [pid | state.subscribers]}}
+    end
+  end
+
+  @impl true
+  def handle_call({:unsubscribe, pid}, _from, state) do
+    {:reply, :ok, %{state | subscribers: List.delete(state.subscribers, pid)}}
   end
 
   # Private

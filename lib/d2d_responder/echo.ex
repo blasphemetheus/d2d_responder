@@ -64,6 +64,8 @@ defmodule D2dResponder.Echo do
 
   @impl true
   def handle_call(:stop, _from, state) do
+    # Unsubscribe from LoRa events
+    LoRa.unsubscribe(self())
     Logger.info("Echo stopped. RX: #{state.rx_count}, TX: #{state.tx_count}")
     {:reply, :ok, %{state | running: false}}
   end
