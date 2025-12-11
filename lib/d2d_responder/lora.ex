@@ -18,7 +18,8 @@ defmodule D2dResponder.LoRa do
   end
 
   def connect(port \\ @default_port) do
-    GenServer.call(__MODULE__, {:connect, port})
+    # Long timeout because wake-up sequence can take 20+ seconds
+    GenServer.call(__MODULE__, {:connect, port}, 30_000)
   end
 
   def disconnect do
