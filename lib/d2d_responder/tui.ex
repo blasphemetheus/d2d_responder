@@ -191,8 +191,13 @@ defmodule D2dResponder.TUI do
     with_spinner("Connecting to LoRa module...", fn ->
       case LoRa.connect("/dev/ttyACM0") do
         :ok ->
-          LoRa.pause_mac()
-          :ok
+          # Give the module time to initialize after connect
+          Process.sleep(500)
+          # pause_mac can be slow, use longer timeout
+          case LoRa.send_command("mac pause", 10_000) do
+            {:ok, _} -> :ok
+            {:error, reason} -> {:error, "mac pause failed: #{inspect(reason)}"}
+          end
         error -> error
       end
     end)
