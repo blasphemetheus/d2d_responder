@@ -8,6 +8,7 @@ defmodule D2dResponder.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      D2dResponder.FileLogger,
       D2dResponder.LoRa,
       D2dResponder.Beacon,
       D2dResponder.Echo

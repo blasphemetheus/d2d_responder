@@ -32,6 +32,7 @@ defmodule D2dResponder.LoRa do
 
   def transmit(data) when is_binary(data) do
     hex = Base.encode16(data)
+    D2dResponder.FileLogger.log_tx(data, hex)
     send_command("radio tx #{hex}")
   end
 
@@ -156,6 +157,7 @@ defmodule D2dResponder.LoRa do
   defp handle_async_response("radio_rx " <> hex, subscribers) do
     case Base.decode16(hex, case: :mixed) do
       {:ok, data} ->
+        D2dResponder.FileLogger.log_rx(data, hex)
         for pid <- subscribers, do: send(pid, {:lora_rx, data, hex})
 
       :error ->
@@ -164,10 +166,12 @@ defmodule D2dResponder.LoRa do
   end
 
   defp handle_async_response("radio_tx_ok", subscribers) do
+    D2dResponder.FileLogger.log_event(:tx_ok)
     for pid <- subscribers, do: send(pid, :lora_tx_ok)
   end
 
   defp handle_async_response("radio_err", subscribers) do
+    D2dResponder.FileLogger.log_event(:tx_error)
     for pid <- subscribers, do: send(pid, :lora_tx_error)
   end
 
