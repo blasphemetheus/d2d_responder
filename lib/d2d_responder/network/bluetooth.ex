@@ -139,9 +139,8 @@ defmodule D2dResponder.Network.Bluetooth do
     script = scripts_path("bt_server_start.sh")
     Logger.info("Bluetooth: Running script #{script} with IP #{ip}")
 
-    # Run directly without Task wrapper - the script should complete quickly
-    # If it hangs, we'll see where in the logs
-    case System.cmd("sudo", [script, ip], stderr_to_stdout: true, timeout: 30_000) do
+    # Run directly - the script should complete quickly
+    case System.cmd("sudo", [script, ip], stderr_to_stdout: true) do
       {output, 0} ->
         Logger.info("Bluetooth server start output: #{output}")
         :ok
