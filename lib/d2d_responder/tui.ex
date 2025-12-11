@@ -22,6 +22,7 @@ defmodule D2dResponder.TUI do
     {"e", "LoRa: Start Echo Mode", :lora_echo},
     {"b", "LoRa: Start Beacon Mode", :lora_beacon},
     {"x", "LoRa: Stop Echo/Beacon", :lora_stop},
+    {"r", "LoRa: Raw Command", :lora_raw},
     {"s", "Show Status", :status},
     {"q", "Quit", :quit}
   ]
@@ -280,6 +281,50 @@ defmodule D2dResponder.TUI do
       true ->
         puts_colored("No LoRa mode is currently running.", :yellow)
     end
+  end
+
+  defp execute_action(:lora_raw) do
+    if not LoRa.connected?() do
+      puts_colored("LoRa not connected. Connect first with 'l'.", :red)
+    else
+      puts_colored("\nLoRa Raw Command Mode (type 'exit' to return to menu)", :cyan)
+      lora_raw_loop()
+    end
+  end
+
+  defp lora_raw_loop do
+    IO.write(Owl.Data.tag("lora> ", :yellow) |> Owl.Data.to_chardata())
+    cmd = IO.gets("") |> String.trim()
+
+    cond do
+      cmd == "" ->
+        lora_raw_loop()
+
+      cmd == "exit" ->
+        puts_colored("Exiting raw command mode.", :cyan)
+
+      true ->
+        case LoRa.send_command(cmd, 5_000) do
+          {:ok, response} ->
+            puts_colored("< #{response}", :green)
+          {:error, :timeout} ->
+            puts_colored("< timeout", :red)
+          {:error, reason} ->
+            puts_colored("< error: #{inspect(reason)}", :red)
+        end
+        lora_raw_loop()
+    end
+  rescue
+    _ ->
+      puts_colored("Error sending command", :red)
+      lora_raw_loop()
+  catch
+    :exit, {:timeout, _} ->
+      puts_colored("< timeout", :red)
+      lora_raw_loop()
+    :exit, reason ->
+      puts_colored("< exit: #{inspect(reason)}", :red)
+      lora_raw_loop()
   end
 
   defp execute_action(:status) do

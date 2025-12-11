@@ -184,37 +184,49 @@ defmodule D2dResponder.LoRa do
 
   defp wake_up_module(uart) do
     # Flush any garbage and send wake-up CRLFs
+    Logger.info("LoRa: Sending wake-up sequence...")
     Circuits.UART.flush(uart)
     Circuits.UART.write(uart, "\r\n\r\n\r\n")
-    Process.sleep(100)
+    Process.sleep(200)
     Circuits.UART.flush(uart)
     drain_uart_messages()
 
     # Try to get version - first attempt often fails or returns invalid_param
-    # Retry up to 3 times
-    Enum.reduce_while(1..3, {:error, :no_response}, fn attempt, _acc ->
-      Logger.debug("Wake-up attempt #{attempt}")
+    # Retry up to 5 times with longer timeouts
+    result = Enum.reduce_while(1..5, {:error, :no_response}, fn attempt, _acc ->
+      Logger.info("LoRa: Wake-up attempt #{attempt}/5...")
       Circuits.UART.write(uart, "sys get ver\r\n")
 
-      case wait_for_response(2000) do
+      case wait_for_response(3000) do
         {:ok, "RN" <> _ = version} ->
+          Logger.info("LoRa: Module responded: #{version}")
           {:halt, {:ok, version}}
 
         {:ok, "invalid_param"} ->
           # First command often fails, try again
-          Process.sleep(100)
+          Logger.info("LoRa: Got invalid_param, retrying...")
+          Process.sleep(200)
           {:cont, {:error, :invalid_param}}
 
         {:ok, other} ->
-          Logger.warning("Unexpected wake-up response: #{inspect(other)}")
-          Process.sleep(100)
+          Logger.info("LoRa: Unexpected response: #{inspect(other)}")
+          Process.sleep(200)
           {:cont, {:error, {:unexpected, other}}}
 
         {:error, :timeout} ->
-          Process.sleep(200)
+          Logger.info("LoRa: Timeout, retrying...")
+          Process.sleep(300)
           {:cont, {:error, :timeout}}
       end
     end)
+
+    # If wake-up failed, still allow connection but warn
+    case result do
+      {:ok, version} -> {:ok, version}
+      {:error, reason} ->
+        Logger.warning("LoRa: Wake-up failed (#{inspect(reason)}), connecting anyway...")
+        {:ok, "Unknown (wake-up failed)"}
+    end
   end
 
   defp wait_for_response(timeout) do
