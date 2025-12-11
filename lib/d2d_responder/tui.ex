@@ -5,6 +5,7 @@ defmodule D2dResponder.TUI do
   """
 
   alias D2dResponder.Network.{WiFi, Bluetooth, Responder}
+  alias D2dResponder.{LoRa, Beacon, Echo}
 
   @menu_items [
     {"1", "Start All Network Services", :start_all},
@@ -12,11 +13,13 @@ defmodule D2dResponder.TUI do
     {"3", "Reset All (cleanup)", :reset_all},
     {"4", "WiFi: Start Ad-hoc", :wifi_start},
     {"5", "WiFi: Stop Ad-hoc", :wifi_stop},
-    {"6", "WiFi: Reset", :wifi_reset},
-    {"7", "Bluetooth: Start NAP Server", :bt_start},
-    {"8", "Bluetooth: Stop NAP Server", :bt_stop},
-    {"9", "Bluetooth: Reset", :bt_reset},
+    {"6", "Bluetooth: Start NAP Server", :bt_start},
+    {"7", "Bluetooth: Stop NAP Server", :bt_stop},
     {"i", "iperf3: Restart Server", :iperf_restart},
+    {"l", "LoRa: Connect", :lora_connect},
+    {"e", "LoRa: Start Echo Mode", :lora_echo},
+    {"b", "LoRa: Start Beacon Mode", :lora_beacon},
+    {"x", "LoRa: Stop Echo/Beacon", :lora_stop},
     {"s", "Show Status", :status},
     {"q", "Quit", :quit}
   ]
@@ -50,8 +53,19 @@ defmodule D2dResponder.TUI do
     wifi_status = get_wifi_status()
     bt_status = get_bt_status()
     iperf_status = get_iperf_status()
+    lora_status = get_lora_status()
 
     puts_colored("── Status ──", :blue)
+
+    # LoRa status
+    lora_badge = if lora_status.connected, do: status_badge("UP", :green), else: status_badge("DOWN", :red)
+    lora_mode = cond do
+      lora_status.echo_running -> "Echo"
+      lora_status.beacon_running -> "Beacon"
+      lora_status.connected -> "Idle"
+      true -> "N/A"
+    end
+    IO.puts("  LoRa:      #{lora_badge}  #{lora_mode}")
 
     # WiFi status
     wifi_badge = if wifi_status.connected, do: status_badge("UP", :green), else: status_badge("DOWN", :red)
@@ -171,8 +185,53 @@ defmodule D2dResponder.TUI do
     |> print_result("iperf3")
   end
 
+  defp execute_action(:lora_connect) do
+    with_spinner("Connecting to LoRa module...", fn ->
+      case LoRa.connect("/dev/ttyACM0") do
+        :ok ->
+          LoRa.pause_mac()
+          :ok
+        error -> error
+      end
+    end)
+    |> print_result("LoRa")
+  end
+
+  defp execute_action(:lora_echo) do
+    if not LoRa.connected?() do
+      puts_colored("LoRa not connected. Connect first with 'l'.", :red)
+    else
+      with_spinner("Starting Echo mode...", fn -> Echo.start_echo() end)
+      |> print_result("LoRa Echo")
+    end
+  end
+
+  defp execute_action(:lora_beacon) do
+    if not LoRa.connected?() do
+      puts_colored("LoRa not connected. Connect first with 'l'.", :red)
+    else
+      with_spinner("Starting Beacon mode...", fn -> Beacon.start_beacon() end)
+      |> print_result("LoRa Beacon")
+    end
+  end
+
+  defp execute_action(:lora_stop) do
+    with_spinner("Stopping LoRa modes...", fn ->
+      Echo.stop_echo()
+      Beacon.stop_beacon()
+      :ok
+    end)
+    |> print_result("LoRa")
+  end
+
   defp execute_action(:status) do
     puts_colored("\n── Detailed Status ──", :blue)
+
+    lora = get_lora_status()
+    IO.puts("\nLoRa:")
+    IO.puts("  Connected: #{lora.connected}")
+    IO.puts("  Echo Running: #{lora.echo_running}")
+    IO.puts("  Beacon Running: #{lora.beacon_running}")
 
     wifi = get_wifi_status()
     IO.puts("\nWiFi Ad-hoc:")
@@ -246,6 +305,22 @@ defmodule D2dResponder.TUI do
       Responder.get_status()
     rescue
       _ -> %{running: false, port: nil}
+    end
+  end
+
+  defp get_lora_status do
+    try do
+      connected = LoRa.connected?()
+      echo_status = Echo.status()
+      beacon_status = Beacon.status()
+
+      %{
+        connected: connected,
+        echo_running: echo_status.running,
+        beacon_running: beacon_status.running
+      }
+    rescue
+      _ -> %{connected: false, echo_running: false, beacon_running: false}
     end
   end
 end
