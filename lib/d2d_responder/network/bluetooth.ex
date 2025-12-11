@@ -51,7 +51,7 @@ defmodule D2dResponder.Network.Bluetooth do
       connected: false,
       ip: @default_ip,
       peer_ip: @peer_ip,
-      auto_start: Keyword.get(opts, :auto_start, true)
+      auto_start: Keyword.get(opts, :auto_start, false)
     }
 
     # Auto-start Bluetooth NAP server if configured

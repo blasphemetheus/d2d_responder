@@ -55,7 +55,7 @@ defmodule D2dResponder.Network.WiFi do
       connected: false,
       ip: @default_ip,
       peer_ip: @peer_ip,
-      auto_start: Keyword.get(opts, :auto_start, true)
+      auto_start: Keyword.get(opts, :auto_start, false)
     }
 
     # Auto-start WiFi ad-hoc if configured

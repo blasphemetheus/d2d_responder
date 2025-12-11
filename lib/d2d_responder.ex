@@ -206,6 +206,33 @@ defmodule D2dResponder do
   end
 
   @doc """
+  Start network services for field testing.
+  Sets up WiFi ad-hoc, Bluetooth NAP, and iperf3 server.
+
+  ## Usage
+      D2dResponder.start_network()
+  """
+  def start_network do
+    IO.puts("Starting network services...")
+
+    IO.puts("  Starting WiFi ad-hoc...")
+    case Network.WiFi.setup() do
+      :ok -> IO.puts("    WiFi OK")
+      {:error, e} -> IO.puts("    WiFi failed: #{inspect(e)}")
+    end
+
+    IO.puts("  Starting Bluetooth NAP...")
+    case Network.Bluetooth.start_server() do
+      :ok -> IO.puts("    Bluetooth OK")
+      {:error, e} -> IO.puts("    Bluetooth failed: #{inspect(e)}")
+    end
+
+    IO.puts("  iperf3 server should already be running")
+    IO.puts("Done!")
+    :ok
+  end
+
+  @doc """
   Reset all network services to normal state (WiFi + Bluetooth).
   Use this instead of rebooting the Pi.
 
