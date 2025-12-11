@@ -198,10 +198,9 @@ defmodule D2dResponder.TUI do
   defp with_spinner(message, func) do
     IO.write("  #{message} ")
 
-    task = Task.async(fn -> func.() end)
-    spinner_loop(task)
+    result = func.()
 
-    case Task.await(task, 60_000) do
+    case result do
       :ok ->
         puts_colored("✓", :green)
         :ok
@@ -219,22 +218,6 @@ defmodule D2dResponder.TUI do
     e ->
       puts_colored("✗ #{inspect(e)}", :red)
       {:error, e}
-  end
-
-  defp spinner_loop(task) do
-    frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-    spinner_loop(task, frames, 0)
-  end
-
-  defp spinner_loop(task, frames, index) do
-    case Task.yield(task, 100) do
-      nil ->
-        frame = Enum.at(frames, rem(index, length(frames)))
-        IO.write("\b#{frame}")
-        spinner_loop(task, frames, index + 1)
-      _ ->
-        IO.write("\b")
-    end
   end
 
   defp print_result(:ok, service), do: puts_colored("#{service} operation completed.", :green)
