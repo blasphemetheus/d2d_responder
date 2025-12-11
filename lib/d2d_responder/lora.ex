@@ -74,49 +74,34 @@ defmodule D2dResponder.LoRa do
        port: nil,
        connected: false,
        pending_response: nil,
-       buffer: "",
        subscribers: []
      }}
   end
 
   @impl true
-  def handle_info({:circuits_uart, _port, data}, state) when is_binary(data) do
-    new_buffer = state.buffer <> data
-    Logger.debug("UART RX: #{inspect(data)} | Buffer: #{inspect(new_buffer)}")
-
-    # RN2483 uses \r\n but handle both \r\n and \n for robustness
-    case extract_line(new_buffer) do
-      {response, rest} ->
-        response = String.trim(response)
-        Logger.debug("Parsed response: #{inspect(response)}")
-
-        if state.pending_response do
-          GenServer.reply(state.pending_response, {:ok, response})
-        end
-
-        # Notify subscribers of async events
-        handle_async_response(response, state.subscribers)
-
-        {:noreply, %{state | buffer: rest, pending_response: nil}}
-
-      nil ->
-        {:noreply, %{state | buffer: new_buffer}}
-    end
+  def handle_info({:circuits_uart, _port, {:partial, partial}}, state) do
+    # Partial line received (framing mode)
+    Logger.debug("UART partial: #{inspect(partial)}")
+    {:noreply, state}
   end
 
-  # Extract a complete line from buffer, handling \r\n or \n
-  defp extract_line(buffer) do
-    cond do
-      String.contains?(buffer, "\r\n") ->
-        [line, rest] = String.split(buffer, "\r\n", parts: 2)
-        {line, rest}
+  @impl true
+  def handle_info({:circuits_uart, _port, data}, state) when is_binary(data) do
+    # With line framing, we get complete lines
+    response = String.trim(data)
+    Logger.debug("UART RX: #{inspect(response)}")
 
-      String.contains?(buffer, "\n") ->
-        [line, rest] = String.split(buffer, "\n", parts: 2)
-        {line, rest}
+    if response != "" do
+      if state.pending_response do
+        GenServer.reply(state.pending_response, {:ok, response})
+      end
 
-      true ->
-        nil
+      # Notify subscribers of async events
+      handle_async_response(response, state.subscribers)
+
+      {:noreply, %{state | pending_response: nil}}
+    else
+      {:noreply, state}
     end
   end
 
@@ -132,12 +117,26 @@ defmodule D2dResponder.LoRa do
 
     {:ok, uart} = Circuits.UART.start_link()
 
-    case Circuits.UART.open(uart, port, speed: @default_baud, active: true) do
+    # RN2483 settings: 57600 baud, 8N1, no flow control
+    uart_opts = [
+      speed: @default_baud,
+      data_bits: 8,
+      stop_bits: 1,
+      parity: :none,
+      flow_control: :none,
+      active: true,
+      framing: {Circuits.UART.Framing.Line, separator: "\r\n"}
+    ]
+
+    case Circuits.UART.open(uart, port, uart_opts) do
       :ok ->
         Circuits.UART.flush(uart)
-        Process.sleep(100)
+        # Send a few newlines to clear any garbage and wake up the module
+        Circuits.UART.write(uart, "\r\n\r\n")
+        Process.sleep(200)
+        Circuits.UART.flush(uart)
         Logger.info("Connected to #{port}")
-        {:reply, :ok, %{state | uart: uart, port: port, connected: true, buffer: ""}}
+        {:reply, :ok, %{state | uart: uart, port: port, connected: true}}
 
       {:error, reason} ->
         Circuits.UART.stop(uart)
@@ -154,8 +153,9 @@ defmodule D2dResponder.LoRa do
   @impl true
   def handle_call({:send_command, cmd}, from, state) do
     if state.connected do
+      Logger.debug("UART TX: #{inspect(cmd)}")
       Circuits.UART.write(state.uart, "#{cmd}\r\n")
-      {:noreply, %{state | pending_response: from, buffer: ""}}
+      {:noreply, %{state | pending_response: from}}
     else
       {:reply, {:error, :not_connected}, state}
     end
