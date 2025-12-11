@@ -19,12 +19,21 @@ defmodule D2dResponder.TUI do
     {"9", "Bluetooth: Reset", :bt_reset},
     {"i", "iperf3: Restart Server", :iperf_restart},
     {"l", "LoRa: Connect", :lora_connect},
+    {"c", "LoRa: Radio Config", :lora_config},
     {"e", "LoRa: Start Echo Mode", :lora_echo},
     {"b", "LoRa: Start Beacon Mode", :lora_beacon},
     {"x", "LoRa: Stop Echo/Beacon", :lora_stop},
     {"r", "LoRa: Raw Command", :lora_raw},
     {"s", "Show Status", :status},
     {"q", "Quit", :quit}
+  ]
+
+  # Radio presets: {name, description, sf, bw, power}
+  @radio_presets [
+    {"1", "Long Range", "Max distance, slowest speed", 12, 125, 14},
+    {"2", "Balanced", "Good range and speed", 9, 125, 14},
+    {"3", "Fast", "Short range, fastest speed", 7, 125, 14},
+    {"4", "Low Power", "Battery saving mode", 9, 125, 5}
   ]
 
   def run do
@@ -292,6 +301,14 @@ defmodule D2dResponder.TUI do
     end
   end
 
+  defp execute_action(:lora_config) do
+    if not LoRa.connected?() do
+      puts_colored("LoRa not connected. Connect first with 'l'.", :red)
+    else
+      radio_config_menu()
+    end
+  end
+
   defp execute_action(:status) do
     puts_colored("\n── Detailed Status ──", :blue)
 
@@ -363,6 +380,148 @@ defmodule D2dResponder.TUI do
     :exit, reason ->
       puts_colored("< exit: #{inspect(reason)}", :red)
       lora_raw_loop()
+  end
+
+  # ============================================
+  # Radio Config Menu
+  # ============================================
+
+  defp radio_config_menu do
+    puts_colored("\n── Radio Configuration ──", :blue)
+
+    # Show current settings
+    case get_radio_settings() do
+      {:ok, settings} ->
+        IO.puts("\nCurrent: #{settings.frequency} Hz | SF#{settings.sf} | #{settings.bw} kHz | #{settings.power} dBm")
+      {:error, _} ->
+        IO.puts("\nCurrent: (unable to read)")
+    end
+
+    IO.puts("")
+    puts_colored("Presets:", :cyan)
+    Enum.each(@radio_presets, fn {key, name, desc, sf, bw, pwr} ->
+      key_str = Owl.Data.tag("[#{key}]", :yellow) |> Owl.Data.to_chardata() |> IO.iodata_to_binary()
+      IO.puts("  #{key_str} #{name} - #{desc} (SF#{sf}, #{bw}kHz, #{pwr}dBm)")
+    end)
+
+    IO.puts("")
+    puts_colored("Custom:", :cyan)
+    custom_key = Owl.Data.tag("[5]", :yellow) |> Owl.Data.to_chardata() |> IO.iodata_to_binary()
+    back_key = Owl.Data.tag("[b]", :yellow) |> Owl.Data.to_chardata() |> IO.iodata_to_binary()
+    IO.puts("  #{custom_key} Custom settings...")
+    IO.puts("  #{back_key} Back to main menu")
+
+    IO.puts("")
+    IO.write(Owl.Data.tag("Select option: ", :cyan) |> Owl.Data.to_chardata())
+    input = IO.gets("") |> String.trim() |> String.downcase()
+
+    case input do
+      "b" ->
+        :ok
+
+      "5" ->
+        custom_radio_config()
+
+      key ->
+        case Enum.find(@radio_presets, fn {k, _, _, _, _, _} -> k == key end) do
+          {_, name, _, sf, bw, pwr} ->
+            apply_radio_preset(name, sf, bw, pwr)
+          nil ->
+            puts_colored("Invalid option.", :red)
+            radio_config_menu()
+        end
+    end
+  end
+
+  defp apply_radio_preset(name, sf, bw, pwr) do
+    puts_colored("\nApplying '#{name}' preset...", :cyan)
+
+    with_spinner("Setting SF#{sf}...", fn -> LoRa.set_spreading_factor(sf) end)
+    with_spinner("Setting #{bw}kHz bandwidth...", fn -> LoRa.set_bandwidth(bw) end)
+    with_spinner("Setting #{pwr}dBm power...", fn -> LoRa.set_power(pwr) end)
+
+    puts_colored("✓ Radio configured: SF#{sf}, #{bw}kHz, #{pwr}dBm", :green)
+  end
+
+  defp custom_radio_config do
+    puts_colored("\n── Custom Radio Settings ──", :blue)
+    IO.puts("Enter new values or press Enter to keep current.\n")
+
+    # Frequency
+    IO.puts("Frequency options: [1] 868.1 MHz (EU)  [2] 915 MHz (US)  [3] 923.3 MHz (US)")
+    IO.write(Owl.Data.tag("Frequency [1-3]: ", :cyan) |> Owl.Data.to_chardata())
+    freq_input = IO.gets("") |> String.trim()
+    unless freq_input == "" do
+      freq = case freq_input do
+        "1" -> 868_100_000
+        "2" -> 915_000_000
+        "3" -> 923_300_000
+        _ -> nil
+      end
+      if freq do
+        with_spinner("Setting frequency #{freq} Hz...", fn -> LoRa.set_frequency(freq) end)
+      end
+    end
+
+    # Spreading Factor
+    IO.puts("\nSpreading Factor: 7 (fastest) to 12 (longest range)")
+    IO.write(Owl.Data.tag("SF [7-12]: ", :cyan) |> Owl.Data.to_chardata())
+    sf_input = IO.gets("") |> String.trim()
+    unless sf_input == "" do
+      case Integer.parse(sf_input) do
+        {sf, ""} when sf in 7..12 ->
+          with_spinner("Setting SF#{sf}...", fn -> LoRa.set_spreading_factor(sf) end)
+        _ ->
+          puts_colored("Invalid SF, skipping.", :yellow)
+      end
+    end
+
+    # Bandwidth
+    IO.puts("\nBandwidth options: [1] 125 kHz  [2] 250 kHz  [3] 500 kHz")
+    IO.write(Owl.Data.tag("Bandwidth [1-3]: ", :cyan) |> Owl.Data.to_chardata())
+    bw_input = IO.gets("") |> String.trim()
+    unless bw_input == "" do
+      bw = case bw_input do
+        "1" -> 125
+        "2" -> 250
+        "3" -> 500
+        _ -> nil
+      end
+      if bw do
+        with_spinner("Setting #{bw}kHz bandwidth...", fn -> LoRa.set_bandwidth(bw) end)
+      end
+    end
+
+    # Power
+    IO.puts("\nTX Power: -3 to 14 dBm")
+    IO.write(Owl.Data.tag("Power [-3 to 14]: ", :cyan) |> Owl.Data.to_chardata())
+    pwr_input = IO.gets("") |> String.trim()
+    unless pwr_input == "" do
+      case Integer.parse(pwr_input) do
+        {pwr, ""} when pwr in -3..14 ->
+          with_spinner("Setting #{pwr}dBm power...", fn -> LoRa.set_power(pwr) end)
+        _ ->
+          puts_colored("Invalid power, skipping.", :yellow)
+      end
+    end
+
+    puts_colored("\n✓ Custom configuration complete.", :green)
+  end
+
+  defp get_radio_settings do
+    with {:ok, freq} <- LoRa.send_command("radio get freq", 2_000),
+         {:ok, sf} <- LoRa.send_command("radio get sf", 2_000),
+         {:ok, bw} <- LoRa.send_command("radio get bw", 2_000),
+         {:ok, pwr} <- LoRa.send_command("radio get pwr", 2_000) do
+      # Parse SF number from "sf7" format
+      sf_num = case Regex.run(~r/sf(\d+)/, sf) do
+        [_, num] -> num
+        _ -> sf
+      end
+      {:ok, %{frequency: freq, sf: sf_num, bw: bw, power: pwr}}
+    else
+      error -> error
+    end
   end
 
   defp with_spinner(message, func) do
