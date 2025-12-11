@@ -197,13 +197,20 @@ defmodule D2dResponder.TUI do
         Process.sleep(500)
         # pause_mac can be slow - try it but don't fail if it times out
         IO.write("  Pausing MAC layer... ")
-        case LoRa.send_command("mac pause", 5_000) do
-          {:ok, response} ->
-            puts_colored("✓ (#{response})", :green)
-          {:error, :timeout} ->
+        try do
+          case LoRa.send_command("mac pause", 5_000) do
+            {:ok, response} ->
+              puts_colored("✓ (#{response})", :green)
+            {:error, :timeout} ->
+              puts_colored("timeout (may already be paused)", :yellow)
+            {:error, reason} ->
+              puts_colored("#{inspect(reason)}", :yellow)
+          end
+        catch
+          :exit, {:timeout, _} ->
             puts_colored("timeout (may already be paused)", :yellow)
-          {:error, reason} ->
-            puts_colored("#{inspect(reason)}", :yellow)
+          :exit, reason ->
+            puts_colored("exit: #{inspect(reason)}", :yellow)
         end
         puts_colored("LoRa ready.", :green)
 
@@ -375,10 +382,20 @@ defmodule D2dResponder.TUI do
   end
 
   defp get_lora_status do
+    default = %{
+      connected: false,
+      echo_running: false,
+      echo_rx_count: 0,
+      echo_tx_count: 0,
+      beacon_running: false,
+      beacon_tx_count: 0,
+      beacon_interval: 0
+    }
+
     try do
       connected = LoRa.connected?()
-      echo_status = Echo.status()
-      beacon_status = Beacon.status()
+      echo_status = safe_genserver_call(fn -> Echo.status() end, %{running: false, rx_count: 0, tx_count: 0})
+      beacon_status = safe_genserver_call(fn -> Beacon.status() end, %{running: false, tx_count: 0, interval: 5000})
 
       %{
         connected: connected,
@@ -390,15 +407,19 @@ defmodule D2dResponder.TUI do
         beacon_interval: beacon_status.interval
       }
     rescue
-      _ -> %{
-        connected: false,
-        echo_running: false,
-        echo_rx_count: 0,
-        echo_tx_count: 0,
-        beacon_running: false,
-        beacon_tx_count: 0,
-        beacon_interval: 0
-      }
+      _ -> default
+    catch
+      :exit, _ -> default
+    end
+  end
+
+  defp safe_genserver_call(fun, default) do
+    try do
+      fun.()
+    rescue
+      _ -> default
+    catch
+      :exit, _ -> default
     end
   end
 end

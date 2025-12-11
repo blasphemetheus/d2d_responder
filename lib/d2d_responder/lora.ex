@@ -82,10 +82,13 @@ defmodule D2dResponder.LoRa do
   @impl true
   def handle_info({:circuits_uart, _port, data}, state) when is_binary(data) do
     new_buffer = state.buffer <> data
+    Logger.debug("UART RX: #{inspect(data)} | Buffer: #{inspect(new_buffer)}")
 
-    case String.split(new_buffer, "\r\n", parts: 2) do
-      [response, rest] ->
+    # RN2483 uses \r\n but handle both \r\n and \n for robustness
+    case extract_line(new_buffer) do
+      {response, rest} ->
         response = String.trim(response)
+        Logger.debug("Parsed response: #{inspect(response)}")
 
         if state.pending_response do
           GenServer.reply(state.pending_response, {:ok, response})
@@ -96,8 +99,24 @@ defmodule D2dResponder.LoRa do
 
         {:noreply, %{state | buffer: rest, pending_response: nil}}
 
-      [_incomplete] ->
+      nil ->
         {:noreply, %{state | buffer: new_buffer}}
+    end
+  end
+
+  # Extract a complete line from buffer, handling \r\n or \n
+  defp extract_line(buffer) do
+    cond do
+      String.contains?(buffer, "\r\n") ->
+        [line, rest] = String.split(buffer, "\r\n", parts: 2)
+        {line, rest}
+
+      String.contains?(buffer, "\n") ->
+        [line, rest] = String.split(buffer, "\n", parts: 2)
+        {line, rest}
+
+      true ->
+        nil
     end
   end
 
