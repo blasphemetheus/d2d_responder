@@ -22,8 +22,12 @@ defmodule D2dResponder.TUI do
   ]
 
   def run do
-    IO.puts(Owl.Data.tag("\n═══ D2D Responder Control Panel ═══\n", :cyan))
+    puts_colored("\n═══ D2D Responder Control Panel ═══\n", :cyan)
     loop()
+  end
+
+  defp puts_colored(text, color) do
+    text |> Owl.Data.tag(color) |> Owl.Data.to_chardata() |> IO.puts()
   end
 
   defp loop do
@@ -32,7 +36,7 @@ defmodule D2dResponder.TUI do
 
     case get_input() do
       :quit ->
-        IO.puts(Owl.Data.tag("\nGoodbye!\n", :yellow))
+        puts_colored("\nGoodbye!\n", :yellow)
         :ok
 
       action ->
@@ -47,7 +51,7 @@ defmodule D2dResponder.TUI do
     bt_status = get_bt_status()
     iperf_status = get_iperf_status()
 
-    IO.puts(Owl.Data.tag("── Status ──", :blue))
+    puts_colored("── Status ──", :blue)
 
     # WiFi status
     wifi_badge = if wifi_status.connected, do: status_badge("UP", :green), else: status_badge("DOWN", :red)
@@ -70,7 +74,7 @@ defmodule D2dResponder.TUI do
   end
 
   defp print_menu do
-    IO.puts(Owl.Data.tag("── Actions ──", :blue))
+    puts_colored("── Actions ──", :blue)
 
     Enum.each(@menu_items, fn {key, label, _action} ->
       key_str = Owl.Data.tag("[#{key}]", :yellow) |> Owl.Data.to_chardata() |> IO.iodata_to_binary()
@@ -81,41 +85,42 @@ defmodule D2dResponder.TUI do
   end
 
   defp get_input do
+    IO.write(Owl.Data.tag("Select option: ", :cyan) |> Owl.Data.to_chardata())
     input =
-      Owl.IO.input(label: Owl.Data.tag("Select option: ", :cyan))
+      IO.gets("")
       |> String.trim()
       |> String.downcase()
 
     case Enum.find(@menu_items, fn {key, _, _} -> key == input end) do
       {_, _, action} -> action
       nil ->
-        IO.puts(Owl.Data.tag("Invalid option, try again.", :red))
+        puts_colored("Invalid option, try again.", :red)
         get_input()
     end
   end
 
   defp execute_action(:start_all) do
-    IO.puts(Owl.Data.tag("\nStarting all network services...", :cyan))
+    puts_colored("\nStarting all network services...", :cyan)
 
     with_spinner("Starting WiFi ad-hoc...", fn -> WiFi.setup() end)
     with_spinner("Starting Bluetooth NAP...", fn -> Bluetooth.start_server() end)
     with_spinner("Starting iperf3...", fn -> Responder.start_iperf_server() end)
 
-    IO.puts(Owl.Data.tag("✓ All services started!", :green))
+    puts_colored("✓ All services started!", :green)
   end
 
   defp execute_action(:stop_all) do
-    IO.puts(Owl.Data.tag("\nStopping all network services...", :cyan))
+    puts_colored("\nStopping all network services...", :cyan)
 
     with_spinner("Stopping WiFi...", fn -> WiFi.teardown() end)
     with_spinner("Stopping Bluetooth...", fn -> Bluetooth.stop_server() end)
     with_spinner("Stopping iperf3...", fn -> Responder.stop_iperf_server() end)
 
-    IO.puts(Owl.Data.tag("✓ All services stopped!", :green))
+    puts_colored("✓ All services stopped!", :green)
   end
 
   defp execute_action(:reset_all) do
-    IO.puts(Owl.Data.tag("\nResetting all network services...", :cyan))
+    puts_colored("\nResetting all network services...", :cyan)
 
     with_spinner("Resetting WiFi...", fn -> WiFi.reset() end)
     with_spinner("Resetting Bluetooth...", fn -> Bluetooth.reset() end)
@@ -124,7 +129,7 @@ defmodule D2dResponder.TUI do
       Responder.start_iperf_server()
     end)
 
-    IO.puts(Owl.Data.tag("✓ All services reset!", :green))
+    puts_colored("✓ All services reset!", :green)
   end
 
   defp execute_action(:wifi_start) do
@@ -167,7 +172,7 @@ defmodule D2dResponder.TUI do
   end
 
   defp execute_action(:status) do
-    IO.puts(Owl.Data.tag("\n── Detailed Status ──", :blue))
+    puts_colored("\n── Detailed Status ──", :blue)
 
     wifi = get_wifi_status()
     IO.puts("\nWiFi Ad-hoc:")
@@ -198,21 +203,21 @@ defmodule D2dResponder.TUI do
 
     case Task.await(task, 60_000) do
       :ok ->
-        IO.puts(Owl.Data.tag("✓", :green))
+        puts_colored("✓", :green)
         :ok
       {:ok, _} ->
-        IO.puts(Owl.Data.tag("✓", :green))
+        puts_colored("✓", :green)
         :ok
       {:error, reason} ->
-        IO.puts(Owl.Data.tag("✗ #{inspect(reason)}", :red))
+        puts_colored("✗ #{inspect(reason)}", :red)
         {:error, reason}
       other ->
-        IO.puts(Owl.Data.tag("✓", :green))
+        puts_colored("✓", :green)
         other
     end
   rescue
     e ->
-      IO.puts(Owl.Data.tag("✗ #{inspect(e)}", :red))
+      puts_colored("✗ #{inspect(e)}", :red)
       {:error, e}
   end
 
@@ -232,10 +237,10 @@ defmodule D2dResponder.TUI do
     end
   end
 
-  defp print_result(:ok, service), do: IO.puts(Owl.Data.tag("#{service} operation completed.", :green))
-  defp print_result({:ok, _}, service), do: IO.puts(Owl.Data.tag("#{service} operation completed.", :green))
-  defp print_result({:error, reason}, service), do: IO.puts(Owl.Data.tag("#{service} failed: #{inspect(reason)}", :red))
-  defp print_result(_, service), do: IO.puts(Owl.Data.tag("#{service} operation completed.", :green))
+  defp print_result(:ok, service), do: puts_colored("#{service} operation completed.", :green)
+  defp print_result({:ok, _}, service), do: puts_colored("#{service} operation completed.", :green)
+  defp print_result({:error, reason}, service), do: puts_colored("#{service} failed: #{inspect(reason)}", :red)
+  defp print_result(_, service), do: puts_colored("#{service} operation completed.", :green)
 
   defp get_wifi_status do
     try do
