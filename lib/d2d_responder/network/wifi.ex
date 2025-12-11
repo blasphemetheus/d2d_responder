@@ -38,6 +38,14 @@ defmodule D2dResponder.Network.WiFi do
     @peer_ip
   end
 
+  @doc """
+  Reset WiFi to normal state (restore NetworkManager).
+  Call this from IEx: D2dResponder.Network.WiFi.reset()
+  """
+  def reset do
+    GenServer.call(__MODULE__, :reset, 30_000)
+  end
+
   # Server callbacks
 
   @impl true
@@ -111,6 +119,14 @@ defmodule D2dResponder.Network.WiFi do
   end
 
   @impl true
+  def handle_call(:reset, _from, state) do
+    Logger.info("WiFi: Resetting to normal state...")
+    do_reset(state.interface)
+    D2dResponder.FileLogger.log_event("WIFI_RESET: NetworkManager restored")
+    {:reply, :ok, %{state | connected: false}}
+  end
+
+  @impl true
   def terminate(_reason, state) do
     if state.connected do
       Logger.info("WiFi: Cleaning up ad-hoc network...")
@@ -146,6 +162,20 @@ defmodule D2dResponder.Network.WiFi do
 
       {output, code} ->
         Logger.warning("WiFi teardown issue (exit #{code}): #{output}")
+        :ok
+    end
+  end
+
+  defp do_reset(interface) do
+    # First teardown ad-hoc, then restart NetworkManager
+    do_teardown(interface)
+    case System.cmd("sudo", ["systemctl", "restart", "NetworkManager"], stderr_to_stdout: true) do
+      {output, 0} ->
+        Logger.debug("NetworkManager restart output: #{output}")
+        :ok
+
+      {output, code} ->
+        Logger.warning("NetworkManager restart issue (exit #{code}): #{output}")
         :ok
     end
   end

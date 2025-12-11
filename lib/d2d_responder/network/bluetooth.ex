@@ -35,6 +35,14 @@ defmodule D2dResponder.Network.Bluetooth do
     @peer_ip
   end
 
+  @doc """
+  Reset Bluetooth to normal state.
+  Call this from IEx: D2dResponder.Network.Bluetooth.reset()
+  """
+  def reset do
+    GenServer.call(__MODULE__, :reset, 30_000)
+  end
+
   # Server callbacks
 
   @impl true
@@ -108,6 +116,15 @@ defmodule D2dResponder.Network.Bluetooth do
   end
 
   @impl true
+  def handle_call(:reset, _from, state) do
+    Logger.info("Bluetooth: Resetting to normal state...")
+    do_stop_server()
+    do_reset_bluetooth()
+    D2dResponder.FileLogger.log_event("BT_RESET: Bluetooth service restarted")
+    {:reply, :ok, %{state | connected: false}}
+  end
+
+  @impl true
   def terminate(_reason, state) do
     if state.connected do
       Logger.info("Bluetooth: Cleaning up NAP server...")
@@ -142,6 +159,19 @@ defmodule D2dResponder.Network.Bluetooth do
 
       {output, code} ->
         Logger.warning("Bluetooth server stop issue (exit #{code}): #{output}")
+        :ok
+    end
+  end
+
+  defp do_reset_bluetooth do
+    # Restart bluetooth service to clear any stuck state
+    case System.cmd("sudo", ["systemctl", "restart", "bluetooth"], stderr_to_stdout: true) do
+      {output, 0} ->
+        Logger.debug("Bluetooth restart output: #{output}")
+        :ok
+
+      {output, code} ->
+        Logger.warning("Bluetooth restart issue (exit #{code}): #{output}")
         :ok
     end
   end

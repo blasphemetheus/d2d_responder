@@ -29,6 +29,7 @@ defmodule D2dResponder do
   """
 
   alias D2dResponder.{LoRa, Beacon, Echo}
+  alias D2dResponder.Network
 
   @default_port "/dev/ttyACM0"
 
@@ -202,5 +203,55 @@ defmodule D2dResponder do
     end
 
     :ok
+  end
+
+  @doc """
+  Reset all network services to normal state (WiFi + Bluetooth).
+  Use this instead of rebooting the Pi.
+
+  ## Usage
+      D2dResponder.reset_network()
+  """
+  def reset_network do
+    IO.puts("Resetting network services...")
+
+    IO.puts("  Resetting WiFi...")
+    Network.WiFi.reset()
+
+    IO.puts("  Resetting Bluetooth...")
+    Network.Bluetooth.reset()
+
+    IO.puts("Done! Network services restored to normal state.")
+    :ok
+  end
+
+  @doc """
+  Get network status.
+  """
+  def network_status do
+    wifi = Network.WiFi.get_status()
+    bt = Network.Bluetooth.get_status()
+    iperf = Network.Responder.get_status()
+
+    IO.puts("""
+
+    Network Status
+    ==============
+    WiFi:
+      Connected: #{wifi.connected}
+      Interface: #{wifi.interface}
+      IP: #{wifi.ip}
+
+    Bluetooth:
+      Connected: #{bt.connected}
+      Mode: #{bt.mode}
+      IP: #{bt.ip}
+
+    iperf3 Server:
+      Running: #{iperf.running}
+      Port: #{iperf.port || "N/A"}
+    """)
+
+    %{wifi: wifi, bluetooth: bt, iperf: iperf}
   end
 end
