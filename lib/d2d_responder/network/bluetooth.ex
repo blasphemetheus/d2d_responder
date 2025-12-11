@@ -138,14 +138,22 @@ defmodule D2dResponder.Network.Bluetooth do
   defp do_start_server(ip) do
     script = scripts_path("bt_server_start.sh")
 
-    case System.cmd("sudo", [script, ip], stderr_to_stdout: true) do
-      {output, 0} ->
+    task = Task.async(fn ->
+      System.cmd("sudo", [script, ip], stderr_to_stdout: true)
+    end)
+
+    case Task.yield(task, 15_000) || Task.shutdown(task) do
+      {:ok, {output, 0}} ->
         Logger.debug("Bluetooth server start output: #{output}")
         :ok
 
-      {output, code} ->
+      {:ok, {output, code}} ->
         Logger.error("Bluetooth server start failed (exit #{code}): #{output}")
         {:error, output}
+
+      nil ->
+        Logger.error("Bluetooth server start timed out")
+        {:error, "timeout"}
     end
   end
 
