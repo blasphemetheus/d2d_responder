@@ -205,30 +205,65 @@ defmodule D2dResponder.TUI do
   end
 
   defp execute_action(:lora_echo) do
-    if not LoRa.connected?() do
-      puts_colored("LoRa not connected. Connect first with 'l'.", :red)
-    else
-      with_spinner("Starting Echo mode...", fn -> Echo.start_echo() end)
-      |> print_result("LoRa Echo")
+    cond do
+      not LoRa.connected?() ->
+        puts_colored("LoRa not connected. Connect first with 'l'.", :red)
+
+      Echo.status().running ->
+        puts_colored("Echo mode is already running.", :yellow)
+
+      Beacon.status().running ->
+        puts_colored("Stopping Beacon mode first...", :cyan)
+        Beacon.stop_beacon()
+        with_spinner("Starting Echo mode...", fn -> Echo.start_echo() end)
+        |> print_result("LoRa Echo")
+
+      true ->
+        with_spinner("Starting Echo mode...", fn -> Echo.start_echo() end)
+        |> print_result("LoRa Echo")
     end
   end
 
   defp execute_action(:lora_beacon) do
-    if not LoRa.connected?() do
-      puts_colored("LoRa not connected. Connect first with 'l'.", :red)
-    else
-      with_spinner("Starting Beacon mode...", fn -> Beacon.start_beacon() end)
-      |> print_result("LoRa Beacon")
+    cond do
+      not LoRa.connected?() ->
+        puts_colored("LoRa not connected. Connect first with 'l'.", :red)
+
+      Beacon.status().running ->
+        puts_colored("Beacon mode is already running.", :yellow)
+
+      Echo.status().running ->
+        puts_colored("Stopping Echo mode first...", :cyan)
+        Echo.stop_echo()
+        with_spinner("Starting Beacon mode...", fn -> Beacon.start_beacon() end)
+        |> print_result("LoRa Beacon")
+
+      true ->
+        with_spinner("Starting Beacon mode...", fn -> Beacon.start_beacon() end)
+        |> print_result("LoRa Beacon")
     end
   end
 
   defp execute_action(:lora_stop) do
-    with_spinner("Stopping LoRa modes...", fn ->
-      Echo.stop_echo()
-      Beacon.stop_beacon()
-      :ok
-    end)
-    |> print_result("LoRa")
+    echo_status = Echo.status()
+    beacon_status = Beacon.status()
+
+    cond do
+      echo_status.running ->
+        with_spinner("Stopping Echo mode (RX: #{echo_status.rx_count}, TX: #{echo_status.tx_count})...", fn ->
+          Echo.stop_echo()
+        end)
+        |> print_result("LoRa Echo")
+
+      beacon_status.running ->
+        with_spinner("Stopping Beacon mode (TX: #{beacon_status.tx_count})...", fn ->
+          Beacon.stop_beacon()
+        end)
+        |> print_result("LoRa Beacon")
+
+      true ->
+        puts_colored("No LoRa mode is currently running.", :yellow)
+    end
   end
 
   defp execute_action(:status) do
@@ -238,7 +273,15 @@ defmodule D2dResponder.TUI do
     IO.puts("\nLoRa:")
     IO.puts("  Connected: #{lora.connected}")
     IO.puts("  Echo Running: #{lora.echo_running}")
+    if lora.echo_running do
+      IO.puts("    RX Count: #{lora.echo_rx_count}")
+      IO.puts("    TX Count: #{lora.echo_tx_count}")
+    end
     IO.puts("  Beacon Running: #{lora.beacon_running}")
+    if lora.beacon_running do
+      IO.puts("    TX Count: #{lora.beacon_tx_count}")
+      IO.puts("    Interval: #{lora.beacon_interval}ms")
+    end
 
     wifi = get_wifi_status()
     IO.puts("\nWiFi Ad-hoc:")
@@ -324,10 +367,22 @@ defmodule D2dResponder.TUI do
       %{
         connected: connected,
         echo_running: echo_status.running,
-        beacon_running: beacon_status.running
+        echo_rx_count: echo_status.rx_count,
+        echo_tx_count: echo_status.tx_count,
+        beacon_running: beacon_status.running,
+        beacon_tx_count: beacon_status.tx_count,
+        beacon_interval: beacon_status.interval
       }
     rescue
-      _ -> %{connected: false, echo_running: false, beacon_running: false}
+      _ -> %{
+        connected: false,
+        echo_running: false,
+        echo_rx_count: 0,
+        echo_tx_count: 0,
+        beacon_running: false,
+        beacon_tx_count: 0,
+        beacon_interval: 0
+      }
     end
   end
 end
