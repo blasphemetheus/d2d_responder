@@ -146,12 +146,14 @@ defmodule D2dResponder.Network.Responder do
 
       _path ->
         # Start iperf3 server as a port
+        # --one-off: Handle one client connection then exit (we auto-restart)
+        # --idle-timeout 300: Wait up to 5 min for slow connections (Bluetooth)
         port = Port.open(
           {:spawn_executable, System.find_executable("iperf3")},
           [
             :binary,
             :exit_status,
-            args: ["-s", "-p", to_string(port_num)]
+            args: ["-s", "-p", to_string(port_num), "--one-off", "--idle-timeout", "300"]
           ]
         )
         {:ok, port}
