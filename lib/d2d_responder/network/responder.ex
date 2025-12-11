@@ -50,18 +50,26 @@ defmodule D2dResponder.Network.Responder do
 
   @impl true
   def handle_info(:auto_start_iperf, state) do
-    Logger.info("Responder: Auto-starting iperf3 server...")
-    case do_start_iperf(@default_port) do
-      {:ok, port} ->
-        Logger.info("Responder: iperf3 server running on port #{@default_port}")
-        D2dResponder.FileLogger.log_event("IPERF_SERVER_STARTED: port #{@default_port}")
-        {:noreply, %{state | iperf_port: @default_port, iperf_pid: port}}
+    # Check if already running from previous session
+    if port_in_use?(@default_port) do
+      Logger.info("Responder: iperf3 already running on port #{@default_port}, killing it first...")
+      kill_existing_iperf(@default_port)
+      # Small delay then retry
+      Process.send_after(self(), :auto_start_iperf, 1_000)
+      {:noreply, state}
+    else
+      Logger.info("Responder: Auto-starting iperf3 server...")
+      case do_start_iperf(@default_port) do
+        {:ok, port} ->
+          Logger.info("Responder: iperf3 server running on port #{@default_port}")
+          D2dResponder.FileLogger.log_event("IPERF_SERVER_STARTED: port #{@default_port}")
+          {:noreply, %{state | iperf_port: @default_port, iperf_pid: port}}
 
-      {:error, reason} ->
-        Logger.error("Responder: Failed to start iperf3: #{inspect(reason)}")
-        # Retry after 5 seconds
-        Process.send_after(self(), :auto_start_iperf, 5_000)
-        {:noreply, state}
+        {:error, reason} ->
+          Logger.error("Responder: Failed to start iperf3: #{inspect(reason)}")
+          # Don't retry endlessly - just log and give up
+          {:noreply, state}
+      end
     end
   end
 
@@ -113,8 +121,8 @@ defmodule D2dResponder.Network.Responder do
   @impl true
   def handle_call(:get_status, _from, state) do
     status = %{
-      iperf_running: state.iperf_pid != nil,
-      iperf_port: state.iperf_port
+      running: state.iperf_pid != nil,
+      port: state.iperf_port
     }
     {:reply, status, state}
   end
@@ -157,4 +165,25 @@ defmodule D2dResponder.Network.Responder do
   end
 
   defp do_stop_iperf(_), do: :ok
+
+  defp port_in_use?(port_num) do
+    case System.cmd("ss", ["-tln", "sport = :#{port_num}"], stderr_to_stdout: true) do
+      {output, 0} ->
+        # If output has more than just the header, port is in use
+        String.contains?(output, "LISTEN")
+      _ ->
+        false
+    end
+  end
+
+  defp kill_existing_iperf(port_num) do
+    # Find and kill any process using this port
+    case System.cmd("fuser", ["-k", "#{port_num}/tcp"], stderr_to_stdout: true) do
+      {_, 0} -> :ok
+      _ ->
+        # Also try pkill as fallback
+        System.cmd("pkill", ["-f", "iperf3.*#{port_num}"], stderr_to_stdout: true)
+        :ok
+    end
+  end
 end
