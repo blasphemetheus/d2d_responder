@@ -25,14 +25,18 @@ if ! command -v bt-network &> /dev/null; then
     exit 1
 fi
 
+# Create pan0 bridge interface BEFORE starting bt-network
+# This is required for bt-network to properly attach bnep connections
+ip link del pan0 2>/dev/null || true
+ip link add name pan0 type bridge
+ip link set pan0 up
+ip addr add "$IP/24" dev pan0
+
+echo "Created pan0 bridge interface with IP $IP"
+
 # Start bt-network with nohup so it detaches completely
 nohup bt-network -s nap pan0 >/dev/null 2>&1 &
 sleep 2
 
-# Configure pan0 interface (may not exist until client connects)
-ip link set pan0 up 2>/dev/null || true
-ip addr flush dev pan0 2>/dev/null || true
-ip addr add "$IP/24" dev pan0 2>/dev/null || true
-
-echo "OK: Bluetooth NAP server running"
+echo "OK: Bluetooth NAP server running on pan0 at $IP"
 exit 0
