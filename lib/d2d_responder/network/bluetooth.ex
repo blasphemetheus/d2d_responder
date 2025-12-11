@@ -152,26 +152,43 @@ defmodule D2dResponder.Network.Bluetooth do
   defp do_stop_server do
     script = scripts_path("bt_server_stop.sh")
 
-    case System.cmd("sudo", [script], stderr_to_stdout: true) do
-      {output, 0} ->
+    task = Task.async(fn ->
+      System.cmd("sudo", [script], stderr_to_stdout: true)
+    end)
+
+    case Task.yield(task, 10_000) || Task.shutdown(task) do
+      {:ok, {output, 0}} ->
         Logger.debug("Bluetooth server stop output: #{output}")
         :ok
 
-      {output, code} ->
+      {:ok, {output, code}} ->
         Logger.warning("Bluetooth server stop issue (exit #{code}): #{output}")
+        :ok
+
+      nil ->
+        Logger.warning("Bluetooth server stop timed out")
         :ok
     end
   end
 
   defp do_reset_bluetooth do
     # Restart bluetooth service to clear any stuck state
-    case System.cmd("sudo", ["systemctl", "restart", "bluetooth"], stderr_to_stdout: true) do
-      {output, 0} ->
+    # Use timeout to avoid hanging
+    task = Task.async(fn ->
+      System.cmd("sudo", ["systemctl", "restart", "bluetooth"], stderr_to_stdout: true)
+    end)
+
+    case Task.yield(task, 10_000) || Task.shutdown(task) do
+      {:ok, {output, 0}} ->
         Logger.debug("Bluetooth restart output: #{output}")
         :ok
 
-      {output, code} ->
+      {:ok, {output, code}} ->
         Logger.warning("Bluetooth restart issue (exit #{code}): #{output}")
+        :ok
+
+      nil ->
+        Logger.warning("Bluetooth restart timed out, continuing anyway")
         :ok
     end
   end
