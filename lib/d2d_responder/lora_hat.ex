@@ -70,6 +70,13 @@ defmodule D2dResponder.LoRaHAT do
   end
 
   @doc """
+  Hardware reset via GPIO reset pin. Useful to recover from bad state.
+  """
+  def reset do
+    GenServer.call(__MODULE__, :reset, 5_000)
+  end
+
+  @doc """
   Transmit data - same API as RN2903 module.
   """
   def transmit(data) when is_binary(data) do
@@ -173,6 +180,18 @@ defmodule D2dResponder.LoRaHAT do
       SX1276.sleep()
     end
     {:reply, :ok, %{state | connected: false}}
+  end
+
+  @impl true
+  def handle_call(:reset, _from, state) do
+    Logger.info("LoRaHAT: Hardware reset via GPIO#{state.config.reset_pin}")
+    # Toggle reset pin low then high
+    case SX1276.hardware_reset() do
+      :ok ->
+        {:reply, :ok, %{state | connected: false}}
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
   end
 
   @impl true

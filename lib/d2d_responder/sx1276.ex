@@ -128,6 +128,13 @@ defmodule D2dResponder.SX1276 do
     GenServer.call(__MODULE__, :sleep)
   end
 
+  @doc """
+  Hardware reset via GPIO reset pin. Toggles low then high.
+  """
+  def hardware_reset do
+    GenServer.call(__MODULE__, :hardware_reset)
+  end
+
   def get_rssi do
     GenServer.call(__MODULE__, :get_rssi)
   end
@@ -250,6 +257,22 @@ defmodule D2dResponder.SX1276 do
   def handle_call(:sleep, _from, %{connected: true} = state) do
     set_mode(@mode_lora ||| @mode_sleep, state)
     {:reply, :ok, %{state | rx_mode: false}}
+  end
+
+  @impl true
+  def handle_call(:hardware_reset, _from, %{reset_gpio: gpio} = state) when not is_nil(gpio) do
+    Logger.info("SX1276: Hardware reset via GPIO")
+    # Toggle reset pin: low -> wait -> high -> wait
+    Circuits.GPIO.write(gpio, 0)
+    Process.sleep(10)
+    Circuits.GPIO.write(gpio, 1)
+    Process.sleep(10)
+    {:reply, :ok, %{state | connected: false, rx_mode: false}}
+  end
+
+  @impl true
+  def handle_call(:hardware_reset, _from, state) do
+    {:reply, {:error, :no_reset_gpio}, state}
   end
 
   @impl true

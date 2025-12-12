@@ -23,6 +23,7 @@ defmodule D2dResponder.TUI do
     {"9", "Bluetooth: Reset", :bt_reset},
     {"i", "iperf3: Restart Server", :iperf_restart},
     {"l", "LoRa: Connect", :lora_connect},
+    {"d", "LoRa: Disconnect/Reset", :lora_reset},
     {"c", "LoRa: Radio Config", :lora_config},
     {"e", "LoRa: Start Echo Mode", :lora_echo},
     {"b", "LoRa: Start Beacon Mode", :lora_beacon},
@@ -311,6 +312,37 @@ defmodule D2dResponder.TUI do
 
       {:error, reason} ->
         puts_colored("Failed to start LoRaHAT: #{inspect(reason)}", :red)
+    end
+  end
+
+  defp execute_action(:lora_reset) do
+    backend = Application.get_env(:d2d_responder, :lora_backend, :none)
+    puts_colored("\nResetting LoRa hardware...", :cyan)
+
+    # Stop any running modes first
+    if Echo.status().running, do: Echo.stop_echo()
+    if Beacon.status().running, do: Beacon.stop_beacon()
+
+    case backend do
+      :sx1276 ->
+        with_spinner("Hardware reset (GPIO25)...", fn ->
+          LoRaHAT.reset()
+        end)
+        with_spinner("Disconnecting...", fn ->
+          LoRaHAT.disconnect()
+        end)
+        Application.put_env(:d2d_responder, :lora_backend, :none)
+        puts_colored("✓ SX1276 reset complete. Use 'l' to reconnect.", :green)
+
+      :rn2903 ->
+        with_spinner("Disconnecting serial...", fn ->
+          LoRa.disconnect()
+        end)
+        Application.put_env(:d2d_responder, :lora_backend, :none)
+        puts_colored("✓ RN2903 disconnected. Use 'l' to reconnect.", :green)
+
+      _ ->
+        puts_colored("No LoRa backend connected.", :yellow)
     end
   end
 
