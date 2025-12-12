@@ -438,7 +438,8 @@ defmodule D2dResponder.SX1276 do
         write_register(@reg_preamble_lsb, 0x08, state)
 
         # Set sync word (0x12 for private networks, 0x34 for LoRaWAN)
-        write_register(@reg_sync_word, 0x12, state)
+        # Sync word 0x34 matches RN2903 default (0x12 is private, 0x34 is LoRaWAN public)
+        write_register(@reg_sync_word, 0x34, state)
 
         # Go to standby
         set_mode(@mode_lora ||| @mode_stdby, state)
