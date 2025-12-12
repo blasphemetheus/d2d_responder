@@ -7,6 +7,8 @@ defmodule D2dResponder.Network.Responder do
   require Logger
 
   @default_port 5201
+  @restart_delay_ms 100  # Fast restart
+  @health_check_interval_ms 30_000  # Check every 30 seconds
 
   # Client API
 
@@ -45,6 +47,9 @@ defmodule D2dResponder.Network.Responder do
       send(self(), :auto_start_iperf)
     end
 
+    # Schedule periodic health checks
+    Process.send_after(self(), :health_check, @health_check_interval_ms)
+
     {:ok, state}
   end
 
@@ -75,10 +80,32 @@ defmodule D2dResponder.Network.Responder do
 
   @impl true
   def handle_info({port, {:exit_status, status}}, state) when is_port(port) do
-    Logger.warning("Responder: iperf3 exited with status #{status}")
-    # Restart iperf3 server
-    Process.send_after(self(), :auto_start_iperf, 1_000)
+    Logger.warning("Responder: iperf3 exited with status #{status}, restarting quickly...")
+    # Fast restart to minimize downtime
+    Process.send_after(self(), :auto_start_iperf, @restart_delay_ms)
     {:noreply, %{state | iperf_port: nil, iperf_pid: nil}}
+  end
+
+  @impl true
+  def handle_info(:health_check, state) do
+    # Schedule next health check
+    Process.send_after(self(), :health_check, @health_check_interval_ms)
+
+    # Check if iperf3 should be running but isn't
+    if state.auto_start and state.iperf_pid == nil do
+      Logger.info("Responder: Health check - iperf3 not running, restarting...")
+      send(self(), :auto_start_iperf)
+    end
+
+    # Also check if port is actually listening (process might be hung)
+    if state.iperf_pid != nil and not port_in_use?(@default_port) do
+      Logger.warning("Responder: Health check - iperf3 process exists but port not listening, restarting...")
+      do_stop_iperf(state.iperf_pid)
+      send(self(), :auto_start_iperf)
+      {:noreply, %{state | iperf_port: nil, iperf_pid: nil}}
+    else
+      {:noreply, state}
+    end
   end
 
   @impl true
@@ -146,14 +173,14 @@ defmodule D2dResponder.Network.Responder do
 
       _path ->
         # Start iperf3 server as a port
-        # --one-off: Handle one client connection then exit (we auto-restart)
+        # Run persistently (no --one-off) to handle multiple connections without restarts
         # --idle-timeout 300: Wait up to 5 min for slow connections (Bluetooth)
         port = Port.open(
           {:spawn_executable, System.find_executable("iperf3")},
           [
             :binary,
             :exit_status,
-            args: ["-s", "-p", to_string(port_num), "--one-off", "--idle-timeout", "300"]
+            args: ["-s", "-p", to_string(port_num), "--idle-timeout", "300"]
           ]
         )
         {:ok, port}
