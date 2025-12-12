@@ -247,6 +247,7 @@ defmodule D2dResponder.SX1276 do
 
   @impl true
   def handle_call({:receive_mode, timeout_ms}, _from, %{connected: true} = state) do
+    Logger.debug("SX1276: Entering RX mode (timeout=#{timeout_ms}ms)")
     do_receive_mode(timeout_ms, state)
     {:reply, :ok, %{state | rx_mode: true}}
   end
@@ -330,7 +331,8 @@ defmodule D2dResponder.SX1276 do
 
   # DIO0 interrupt handler (RX done or TX done)
   @impl true
-  def handle_info({:circuits_gpio, _pin, _timestamp, 1}, state) do
+  def handle_info({:circuits_gpio, pin, _timestamp, 1}, state) do
+    Logger.debug("SX1276: DIO0 interrupt (pin #{pin}), rx_mode=#{state.rx_mode}")
     handle_dio0_interrupt(state)
   end
 
@@ -557,6 +559,7 @@ defmodule D2dResponder.SX1276 do
 
   defp handle_dio0_interrupt(%{rx_mode: true} = state) do
     irq = read_register(@reg_irq_flags, state)
+    Logger.debug("SX1276: RX interrupt, IRQ flags=0x#{Integer.to_string(irq, 16)}")
 
     if (irq &&& @irq_rx_done) != 0 do
       # Check CRC
@@ -597,6 +600,7 @@ defmodule D2dResponder.SX1276 do
   defp handle_dio0_interrupt(state) do
     # TX done interrupt or spurious
     irq = read_register(@reg_irq_flags, state)
+    Logger.debug("SX1276: TX/other interrupt, IRQ flags=0x#{Integer.to_string(irq, 16)}, rx_mode=#{state.rx_mode}")
     if (irq &&& @irq_tx_done) != 0 do
       write_register(@reg_irq_flags, @irq_tx_done, state)
       for pid <- state.subscribers, do: send(pid, :lora_tx_ok)
