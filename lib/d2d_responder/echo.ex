@@ -8,6 +8,8 @@ defmodule D2dResponder.Echo do
   alias D2dResponder.{LoRa, LoRaHAT}
 
   @default_prefix "ECHO:"
+  # Delay before echoing to allow sender to switch to RX mode (half-duplex turnaround)
+  @echo_delay_ms 150
 
   # Client API
 
@@ -113,21 +115,29 @@ defmodule D2dResponder.Echo do
     if state.running do
       Logger.info("Echo RX: #{data} (#{hex})")
 
-      # Echo back with prefix
+      # Schedule echo with delay to allow sender to switch to RX mode
       response = state.prefix <> data
+      Process.send_after(self(), {:do_echo, response}, @echo_delay_ms)
 
+      {:noreply, %{state | rx_count: state.rx_count + 1}}
+    else
+      {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_info({:do_echo, response}, state) do
+    if state.running do
       case lora_module().transmit(response) do
         {:ok, _} ->
           Logger.debug("Echo TX: #{response}")
           # Don't start listening here - wait for lora_tx_ok/lora_tx_error
-          # TX is async, module is busy until we get the callback
-          {:noreply, %{state | rx_count: state.rx_count + 1, tx_count: state.tx_count + 1}}
+          {:noreply, %{state | tx_count: state.tx_count + 1}}
 
         {:error, reason} ->
           Logger.warning("Echo TX failed: #{inspect(reason)}")
-          # TX failed immediately, resume listening
           start_listening()
-          {:noreply, %{state | rx_count: state.rx_count + 1}}
+          {:noreply, state}
       end
     else
       {:noreply, state}
