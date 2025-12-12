@@ -176,9 +176,9 @@ defmodule D2dResponder.LoRaHAT do
 
   @impl true
   def handle_call(:disconnect, _from, state) do
-    if state.connected do
-      SX1276.disconnect()
-    end
+    # Always try to disconnect SX1276, even if we think we're not connected
+    # (resources might still be held from a partial connect)
+    SX1276.disconnect()
     {:reply, :ok, %{state | connected: false}}
   end
 
