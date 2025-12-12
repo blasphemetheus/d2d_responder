@@ -371,10 +371,11 @@ defmodule D2dResponder.SX1276 do
   defp do_begin(frequency, state) do
     Logger.info("SX1276: Initializing on #{state.spi_bus}, reset=GPIO#{state.reset_pin}, CS=GPIO#{state.cs_pin}, DIO0=GPIO#{state.dio0_pin}")
 
-    with {:ok, spi} <- Circuits.SPI.open(state.spi_bus, speed_hz: state.spi_speed, mode: 0),
-         {:ok, reset_gpio} <- Circuits.GPIO.open(state.reset_pin, :output),
-         {:ok, cs_gpio} <- Circuits.GPIO.open(state.cs_pin, :output),
-         {:ok, dio0_gpio} <- Circuits.GPIO.open(state.dio0_pin, :input) do
+    # Open resources one at a time with cleanup on failure
+    with {:ok, spi} <- open_spi(state),
+         {:ok, reset_gpio} <- open_gpio(state.reset_pin, :output, [spi]),
+         {:ok, cs_gpio} <- open_gpio(state.cs_pin, :output, [spi, reset_gpio]),
+         {:ok, dio0_gpio} <- open_gpio(state.dio0_pin, :input, [spi, reset_gpio, cs_gpio]) do
 
       # CS starts high (deselected)
       Circuits.GPIO.write(cs_gpio, 1)
@@ -658,5 +659,41 @@ defmodule D2dResponder.SX1276 do
     if state.cs_gpio do
       Circuits.GPIO.write(state.cs_gpio, 1)
     end
+  end
+
+  # Helper to open SPI with error handling
+  defp open_spi(state) do
+    case Circuits.SPI.open(state.spi_bus, speed_hz: state.spi_speed, mode: 0) do
+      {:ok, spi} -> {:ok, spi}
+      {:error, reason} ->
+        Logger.error("SX1276: Failed to open SPI #{state.spi_bus}: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  # Helper to open GPIO with cleanup of previously opened resources on failure
+  defp open_gpio(pin, direction, cleanup_on_fail) do
+    case Circuits.GPIO.open(pin, direction) do
+      {:ok, gpio} -> {:ok, gpio}
+      {:error, reason} ->
+        Logger.error("SX1276: Failed to open GPIO#{pin}: #{inspect(reason)}")
+        # Clean up any previously opened resources
+        cleanup_resources(cleanup_on_fail)
+        {:error, reason}
+    end
+  end
+
+  defp cleanup_resources(resources) do
+    Enum.each(resources, fn resource ->
+      try do
+        # Try SPI close first, then GPIO
+        case Circuits.SPI.close(resource) do
+          :ok -> :ok
+          _ -> Circuits.GPIO.close(resource)
+        end
+      rescue
+        _ -> :ok
+      end
+    end)
   end
 end
