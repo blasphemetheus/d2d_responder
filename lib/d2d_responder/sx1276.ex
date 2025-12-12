@@ -433,6 +433,14 @@ defmodule D2dResponder.SX1276 do
         # Set coding rate (default 4/5)
         do_set_coding_rate(5, state)
 
+        # Enable CRC (bit 2 of modem_config_2) - required to match RN2903
+        config2 = read_register(@reg_modem_config_2, state)
+        write_register(@reg_modem_config_2, config2 ||| 0x04, state)
+
+        # Ensure explicit header mode (bit 0 of modem_config_1 = 0) - matches RN2903
+        config1 = read_register(@reg_modem_config_1, state)
+        write_register(@reg_modem_config_1, config1 &&& 0xFE, state)
+
         # Set preamble length (default 8)
         write_register(@reg_preamble_msb, 0x00, state)
         write_register(@reg_preamble_lsb, 0x08, state)
@@ -443,6 +451,14 @@ defmodule D2dResponder.SX1276 do
 
         # Go to standby
         set_mode(@mode_lora ||| @mode_stdby, state)
+
+        # Log modem config for debugging
+        mc1 = read_register(@reg_modem_config_1, state)
+        mc2 = read_register(@reg_modem_config_2, state)
+        mc3 = read_register(@reg_modem_config_3, state)
+        sw = read_register(@reg_sync_word, state)
+        Logger.info("SX1276: ModemConfig1=0x#{Integer.to_string(mc1, 16)}, ModemConfig2=0x#{Integer.to_string(mc2, 16)}, ModemConfig3=0x#{Integer.to_string(mc3, 16)}, SyncWord=0x#{Integer.to_string(sw, 16)}")
+        Logger.info("SX1276: CRC=#{if (mc2 &&& 0x04) != 0, do: "ON", else: "OFF"}, Header=#{if (mc1 &&& 0x01) != 0, do: "Implicit", else: "Explicit"}")
 
         Logger.info("SX1276: Initialized at #{frequency / 1_000_000} MHz")
         {:ok, %{state | connected: true, frequency: frequency}}
