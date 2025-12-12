@@ -1,10 +1,11 @@
 defmodule D2dResponder.Beacon do
   @moduledoc """
   Periodically transmits beacon messages via LoRa.
+  Works with both RN2903 (UART) and SX1276 (SPI) backends.
   """
   use GenServer
   require Logger
-  alias D2dResponder.LoRa
+  alias D2dResponder.{LoRa, LoRaHAT}
 
   @default_interval 5_000
   @default_message "BEACON"
@@ -101,9 +102,12 @@ defmodule D2dResponder.Beacon do
   @impl true
   def handle_info(:send_beacon, state) do
     if state.running do
-      # Transmit the beacon
-      case LoRa.transmit(state.message) do
+      # Transmit the beacon using the active backend
+      case lora_module().transmit(state.message) do
         {:ok, _} ->
+          Logger.debug("Beacon TX ##{state.tx_count + 1}: #{state.message}")
+
+        :ok ->
           Logger.debug("Beacon TX ##{state.tx_count + 1}: #{state.message}")
 
         {:error, reason} ->
@@ -116,6 +120,15 @@ defmodule D2dResponder.Beacon do
       {:noreply, %{state | timer_ref: timer_ref, tx_count: state.tx_count + 1}}
     else
       {:noreply, state}
+    end
+  end
+
+  # Private
+
+  defp lora_module do
+    case Application.get_env(:d2d_responder, :lora_backend, :rn2903) do
+      :sx1276 -> LoRaHAT
+      _ -> LoRa
     end
   end
 end

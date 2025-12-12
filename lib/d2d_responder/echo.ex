@@ -1,10 +1,11 @@
 defmodule D2dResponder.Echo do
   @moduledoc """
   Listens for LoRa messages and echoes them back with a prefix.
+  Works with both RN2903 (UART) and SX1276 (SPI) backends.
   """
   use GenServer
   require Logger
-  alias D2dResponder.LoRa
+  alias D2dResponder.{LoRa, LoRaHAT}
 
   @default_prefix "ECHO:"
 
@@ -50,8 +51,8 @@ defmodule D2dResponder.Echo do
     else
       prefix = Keyword.get(opts, :prefix, state.prefix)
 
-      # Subscribe to LoRa RX events
-      LoRa.subscribe(self())
+      # Subscribe to LoRa RX events from the active backend
+      lora_module().subscribe(self())
 
       # Start continuous RX mode
       start_listening()
@@ -65,7 +66,7 @@ defmodule D2dResponder.Echo do
   @impl true
   def handle_call(:stop, _from, state) do
     # Unsubscribe from LoRa events
-    LoRa.unsubscribe(self())
+    lora_module().unsubscribe(self())
     Logger.info("Echo stopped. RX: #{state.rx_count}, TX: #{state.tx_count}")
     {:reply, :ok, %{state | running: false}}
   end
@@ -86,15 +87,26 @@ defmodule D2dResponder.Echo do
      }, state}
   end
 
+  # Handle RX from both backends (slightly different message format)
   @impl true
   def handle_info({:lora_rx, data, hex}, state) do
+    handle_rx(data, hex, state)
+  end
+
+  # SX1276 sends additional opts
+  @impl true
+  def handle_info({:lora_rx, data, hex, _opts}, state) do
+    handle_rx(data, hex, state)
+  end
+
+  defp handle_rx(data, hex, state) do
     if state.running do
       Logger.info("Echo RX: #{data} (#{hex})")
 
       # Echo back with prefix
       response = state.prefix <> data
 
-      case LoRa.transmit(response) do
+      case lora_module().transmit(response) do
         {:ok, _} ->
           Logger.debug("Echo TX: #{response}")
           # Don't start listening here - wait for lora_tx_ok/lora_tx_error
@@ -144,8 +156,11 @@ defmodule D2dResponder.Echo do
   @impl true
   def handle_info(:do_start_rx, state) do
     if state.running do
-      case LoRa.receive_mode(0) do
+      case lora_module().receive_mode(0) do
         {:ok, _} ->
+          Logger.debug("Echo: listening...")
+
+        :ok ->
           Logger.debug("Echo: listening...")
 
         {:error, reason} ->
@@ -163,5 +178,12 @@ defmodule D2dResponder.Echo do
   defp start_listening do
     # Small delay before starting RX to let TX complete
     Process.send_after(self(), :do_start_rx, 100)
+  end
+
+  defp lora_module do
+    case Application.get_env(:d2d_responder, :lora_backend, :rn2903) do
+      :sx1276 -> LoRaHAT
+      _ -> LoRa
+    end
   end
 end

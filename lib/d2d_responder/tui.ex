@@ -2,10 +2,14 @@ defmodule D2dResponder.TUI do
   @moduledoc """
   Terminal UI for D2D Responder using Owl.
   Run with: D2dResponder.TUI.run()
+
+  Supports two LoRa hardware backends:
+  - RN2903: USB serial module (PICtail, etc.) - uses AT commands
+  - SX1276: SPI module (Dragino HAT, etc.) - direct register access
   """
 
   alias D2dResponder.Network.{WiFi, Bluetooth, Responder}
-  alias D2dResponder.{LoRa, Beacon, Echo}
+  alias D2dResponder.{LoRa, LoRaHAT, Beacon, Echo}
 
   @menu_items [
     {"1", "Start All Network Services", :start_all},
@@ -34,6 +38,12 @@ defmodule D2dResponder.TUI do
     {"2", "Balanced", "Good range and speed", 9, 125, 14},
     {"3", "Fast", "Short range, fastest speed", 7, 125, 14},
     {"4", "Low Power", "Battery saving mode", 9, 125, 5}
+  ]
+
+  # LoRa hardware backends
+  @lora_backends [
+    {"1", "RN2903 (USB/Serial)", :rn2903, "PICtail, Moteino, etc. via /dev/ttyACM0"},
+    {"2", "SX1276 (SPI/HAT)", :sx1276, "Dragino LoRa/GPS HAT via SPI"}
   ]
 
   def run do
@@ -71,13 +81,19 @@ defmodule D2dResponder.TUI do
 
     # LoRa status
     lora_badge = if lora_status.connected, do: status_badge("UP", :green), else: status_badge("DOWN", :red)
+    lora_hw = case lora_status.backend do
+      :sx1276 -> "SX1276"
+      :rn2903 -> "RN2903"
+      _ -> ""
+    end
     lora_mode = cond do
       lora_status.echo_running -> "Echo"
       lora_status.beacon_running -> "Beacon"
       lora_status.connected -> "Idle"
       true -> "N/A"
     end
-    IO.puts("  LoRa:      #{lora_badge}  #{lora_mode}")
+    hw_str = if lora_hw != "", do: " (#{lora_hw})", else: ""
+    IO.puts("  LoRa:      #{lora_badge}  #{lora_mode}#{hw_str}")
 
     # WiFi status
     wifi_badge = if wifi_status.connected, do: status_badge("UP", :green), else: status_badge("DOWN", :red)
@@ -208,11 +224,39 @@ defmodule D2dResponder.TUI do
   end
 
   defp execute_action(:lora_connect) do
-    IO.write("  Connecting to LoRa module... ")
+    puts_colored("\n── Select LoRa Hardware ──", :blue)
+
+    Enum.each(@lora_backends, fn {key, name, _type, desc} ->
+      key_str = Owl.Data.tag("[#{key}]", :yellow) |> Owl.Data.to_chardata() |> IO.iodata_to_binary()
+      IO.puts("  #{key_str} #{name}")
+      IO.puts("      #{desc}")
+    end)
+
+    IO.puts("")
+    IO.write(Owl.Data.tag("Select hardware [1-2]: ", :cyan) |> Owl.Data.to_chardata())
+    input = IO.gets("") |> String.trim()
+
+    case Enum.find(@lora_backends, fn {k, _, _, _} -> k == input end) do
+      {_, name, :rn2903, _} ->
+        connect_rn2903(name)
+
+      {_, name, :sx1276, _} ->
+        connect_sx1276(name)
+
+      nil ->
+        puts_colored("Invalid selection.", :red)
+    end
+  end
+
+  defp connect_rn2903(name) do
+    puts_colored("\nConnecting to #{name}...", :cyan)
+    IO.write("  Opening /dev/ttyACM0... ")
 
     case LoRa.connect("/dev/ttyACM0") do
       :ok ->
         puts_colored("✓", :green)
+        # Store active backend
+        Application.put_env(:d2d_responder, :lora_backend, :rn2903)
         # Give the module time to initialize after connect
         Process.sleep(500)
         # pause_mac can be slow - try it but don't fail if it times out
@@ -232,7 +276,7 @@ defmodule D2dResponder.TUI do
           :exit, reason ->
             puts_colored("exit: #{inspect(reason)}", :yellow)
         end
-        puts_colored("LoRa ready.", :green)
+        puts_colored("LoRa ready (RN2903).", :green)
 
       {:error, reason} ->
         puts_colored("✗", :red)
@@ -240,9 +284,63 @@ defmodule D2dResponder.TUI do
     end
   end
 
+  defp connect_sx1276(name) do
+    puts_colored("\nConnecting to #{name}...", :cyan)
+
+    # Ensure the HAT GenServer is started
+    case ensure_lora_hat_started() do
+      :ok ->
+        IO.write("  Initializing SX1276 via SPI... ")
+        case LoRaHAT.connect() do
+          :ok ->
+            puts_colored("✓", :green)
+            Application.put_env(:d2d_responder, :lora_backend, :sx1276)
+            puts_colored("LoRa ready (Dragino HAT).", :green)
+
+          {:error, :invalid_chip} ->
+            puts_colored("✗", :red)
+            puts_colored("SX1276 not detected. Check:", :red)
+            puts_colored("  - SPI enabled: sudo raspi-config -> Interface Options -> SPI", :yellow)
+            puts_colored("  - HAT seated properly on GPIO header", :yellow)
+            puts_colored("  - Check dmesg for SPI errors", :yellow)
+
+          {:error, reason} ->
+            puts_colored("✗", :red)
+            puts_colored("LoRa HAT connect failed: #{inspect(reason)}", :red)
+        end
+
+      {:error, reason} ->
+        puts_colored("Failed to start LoRaHAT: #{inspect(reason)}", :red)
+    end
+  end
+
+  defp ensure_lora_hat_started do
+    case Process.whereis(LoRaHAT) do
+      nil ->
+        case LoRaHAT.start_link() do
+          {:ok, _pid} -> :ok
+          {:error, {:already_started, _pid}} -> :ok
+          error -> error
+        end
+      _pid -> :ok
+    end
+  end
+
+  # Helper to get the current LoRa backend module
+  defp lora_module do
+    case Application.get_env(:d2d_responder, :lora_backend, :rn2903) do
+      :sx1276 -> LoRaHAT
+      _ -> LoRa
+    end
+  end
+
+  defp lora_connected? do
+    lora_module().connected?()
+  end
+
   defp execute_action(:lora_echo) do
     cond do
-      not LoRa.connected?() ->
+      not lora_connected?() ->
         puts_colored("LoRa not connected. Connect first with 'l'.", :red)
 
       Echo.status().running ->
@@ -262,7 +360,7 @@ defmodule D2dResponder.TUI do
 
   defp execute_action(:lora_beacon) do
     cond do
-      not LoRa.connected?() ->
+      not lora_connected?() ->
         puts_colored("LoRa not connected. Connect first with 'l'.", :red)
 
       Beacon.status().running ->
@@ -303,16 +401,24 @@ defmodule D2dResponder.TUI do
   end
 
   defp execute_action(:lora_raw) do
-    if not LoRa.connected?() do
-      puts_colored("LoRa not connected. Connect first with 'l'.", :red)
-    else
-      puts_colored("\nLoRa Raw Command Mode (type 'exit' to return to menu)", :cyan)
-      lora_raw_loop()
+    backend = Application.get_env(:d2d_responder, :lora_backend, :rn2903)
+
+    cond do
+      not lora_connected?() ->
+        puts_colored("LoRa not connected. Connect first with 'l'.", :red)
+
+      backend == :sx1276 ->
+        puts_colored("Raw command mode not available for SX1276 (no AT command interface).", :yellow)
+        puts_colored("Use Radio Config [c] to change settings.", :cyan)
+
+      true ->
+        puts_colored("\nLoRa Raw Command Mode (type 'exit' to return to menu)", :cyan)
+        lora_raw_loop()
     end
   end
 
   defp execute_action(:lora_config) do
-    if not LoRa.connected?() do
+    if not lora_connected?() do
       puts_colored("LoRa not connected. Connect first with 'l'.", :red)
     else
       radio_config_menu()
@@ -445,10 +551,11 @@ defmodule D2dResponder.TUI do
 
   defp apply_radio_preset(name, sf, bw, pwr) do
     puts_colored("\nApplying '#{name}' preset...", :cyan)
+    mod = lora_module()
 
-    with_spinner("Setting SF#{sf}...", fn -> LoRa.set_spreading_factor(sf) end)
-    with_spinner("Setting #{bw}kHz bandwidth...", fn -> LoRa.set_bandwidth(bw) end)
-    with_spinner("Setting #{pwr}dBm power...", fn -> LoRa.set_power(pwr) end)
+    with_spinner("Setting SF#{sf}...", fn -> mod.set_spreading_factor(sf) end)
+    with_spinner("Setting #{bw}kHz bandwidth...", fn -> mod.set_bandwidth(bw) end)
+    with_spinner("Setting #{pwr}dBm power...", fn -> mod.set_power(pwr) end)
 
     puts_colored("✓ Radio configured: SF#{sf}, #{bw}kHz, #{pwr}dBm", :green)
   end
@@ -456,6 +563,7 @@ defmodule D2dResponder.TUI do
   defp custom_radio_config do
     puts_colored("\n── Custom Radio Settings ──", :blue)
     IO.puts("Enter new values or press Enter to keep current.\n")
+    mod = lora_module()
 
     # Frequency
     IO.puts("Frequency options: [1] 868.1 MHz (EU)  [2] 915 MHz (US)  [3] 923.3 MHz (US)")
@@ -469,7 +577,7 @@ defmodule D2dResponder.TUI do
         _ -> nil
       end
       if freq do
-        with_spinner("Setting frequency #{freq} Hz...", fn -> LoRa.set_frequency(freq) end)
+        with_spinner("Setting frequency #{freq} Hz...", fn -> mod.set_frequency(freq) end)
       end
     end
 
@@ -480,7 +588,7 @@ defmodule D2dResponder.TUI do
     unless sf_input == "" do
       case Integer.parse(sf_input) do
         {sf, ""} when sf in 7..12 ->
-          with_spinner("Setting SF#{sf}...", fn -> LoRa.set_spreading_factor(sf) end)
+          with_spinner("Setting SF#{sf}...", fn -> mod.set_spreading_factor(sf) end)
         _ ->
           puts_colored("Invalid SF, skipping.", :yellow)
       end
@@ -498,18 +606,20 @@ defmodule D2dResponder.TUI do
         _ -> nil
       end
       if bw do
-        with_spinner("Setting #{bw}kHz bandwidth...", fn -> LoRa.set_bandwidth(bw) end)
+        with_spinner("Setting #{bw}kHz bandwidth...", fn -> mod.set_bandwidth(bw) end)
       end
     end
 
     # Power
-    IO.puts("\nTX Power: -3 to 14 dBm")
-    IO.write(Owl.Data.tag("Power [-3 to 14]: ", :cyan) |> Owl.Data.to_chardata())
+    backend = Application.get_env(:d2d_responder, :lora_backend, :rn2903)
+    max_power = if backend == :sx1276, do: 20, else: 14
+    IO.puts("\nTX Power: #{if backend == :sx1276, do: "2", else: "-3"} to #{max_power} dBm")
+    IO.write(Owl.Data.tag("Power: ", :cyan) |> Owl.Data.to_chardata())
     pwr_input = IO.gets("") |> String.trim()
     unless pwr_input == "" do
       case Integer.parse(pwr_input) do
-        {pwr, ""} when pwr in -3..14 ->
-          with_spinner("Setting #{pwr}dBm power...", fn -> LoRa.set_power(pwr) end)
+        {pwr, ""} when pwr in -3..20 ->
+          with_spinner("Setting #{pwr}dBm power...", fn -> mod.set_power(pwr) end)
         _ ->
           puts_colored("Invalid power, skipping.", :yellow)
       end
@@ -519,18 +629,35 @@ defmodule D2dResponder.TUI do
   end
 
   defp get_radio_settings do
-    with {:ok, freq} <- LoRa.send_command("radio get freq", 2_000),
-         {:ok, sf} <- LoRa.send_command("radio get sf", 2_000),
-         {:ok, bw} <- LoRa.send_command("radio get bw", 2_000),
-         {:ok, pwr} <- LoRa.send_command("radio get pwr", 2_000) do
-      # Parse SF number from "sf7" format
-      sf_num = case Regex.run(~r/sf(\d+)/, sf) do
-        [_, num] -> num
-        _ -> sf
-      end
-      {:ok, %{frequency: freq, sf: sf_num, bw: bw, power: pwr}}
-    else
-      error -> error
+    backend = Application.get_env(:d2d_responder, :lora_backend, :rn2903)
+
+    case backend do
+      :sx1276 ->
+        case LoRaHAT.get_radio_settings() do
+          {:ok, config} ->
+            {:ok, %{
+              frequency: "#{config.frequency}",
+              sf: "#{config.spreading_factor}",
+              bw: "#{div(config.bandwidth, 1000)}",
+              power: "#{config.tx_power}"
+            }}
+          error -> error
+        end
+
+      _ ->
+        with {:ok, freq} <- LoRa.send_command("radio get freq", 2_000),
+             {:ok, sf} <- LoRa.send_command("radio get sf", 2_000),
+             {:ok, bw} <- LoRa.send_command("radio get bw", 2_000),
+             {:ok, pwr} <- LoRa.send_command("radio get pwr", 2_000) do
+          # Parse SF number from "sf7" format
+          sf_num = case Regex.run(~r/sf(\d+)/, sf) do
+            [_, num] -> num
+            _ -> sf
+          end
+          {:ok, %{frequency: freq, sf: sf_num, bw: bw, power: pwr}}
+        else
+          error -> error
+        end
     end
   end
 
@@ -598,6 +725,7 @@ defmodule D2dResponder.TUI do
   defp get_lora_status do
     default = %{
       connected: false,
+      backend: :none,
       echo_running: false,
       echo_rx_count: 0,
       echo_tx_count: 0,
@@ -607,12 +735,14 @@ defmodule D2dResponder.TUI do
     }
 
     try do
-      connected = LoRa.connected?()
+      backend = Application.get_env(:d2d_responder, :lora_backend, :rn2903)
+      connected = lora_connected?()
       echo_status = safe_genserver_call(fn -> Echo.status() end, %{running: false, rx_count: 0, tx_count: 0})
       beacon_status = safe_genserver_call(fn -> Beacon.status() end, %{running: false, tx_count: 0, interval: 5000})
 
       %{
         connected: connected,
+        backend: if(connected, do: backend, else: :none),
         echo_running: echo_status.running,
         echo_rx_count: echo_status.rx_count,
         echo_tx_count: echo_status.tx_count,

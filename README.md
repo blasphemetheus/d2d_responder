@@ -56,25 +56,89 @@ D2dResponder.network_status()
 D2dResponder.reset_network()
 ```
 
-### LoRa Commands
+### Terminal UI (Recommended)
+
+The TUI provides an interactive menu for all operations:
+
+```bash
+# Start with TUI
+iex -S mix
+
+# Then run
+D2dResponder.TUI.run()
+
+# Or start directly in echo mode (for unattended operation)
+iex -S mix -- --echo
+```
+
+### Supported LoRa Hardware
+
+The responder supports two LoRa hardware backends:
+
+| Hardware | Interface | Notes |
+|----------|-----------|-------|
+| **RN2903** | USB Serial (`/dev/ttyACM0`) | Microchip PICtail, Moteino USB |
+| **SX1276** | SPI + GPIO | Dragino LoRa/GPS HAT |
+
+Select the hardware type when connecting via the TUI (`[l] LoRa: Connect`).
+
+#### Dragino LoRa/GPS HAT Setup
+
+The SX1276 HAT requires SPI enabled on the Pi:
+
+```bash
+# Enable SPI via raspi-config
+sudo raspi-config
+# -> Interface Options -> SPI -> Enable
+
+# Verify SPI is available
+ls /dev/spidev*
+# Should show: /dev/spidev0.0  /dev/spidev0.1
+
+# Check GPIO permissions (user should be in gpio group)
+groups
+# Should include: gpio
+
+# If not in gpio group:
+sudo usermod -aG gpio $USER
+# Then logout/login
+```
+
+**Dragino HAT Pinout:**
+
+| Function | BCM Pin | Physical Pin |
+|----------|---------|--------------|
+| MOSI     | 10      | 19           |
+| MISO     | 9       | 21           |
+| SCLK     | 11      | 23           |
+| NSS/CS   | 25      | 22           |
+| RESET    | 17      | 11           |
+| DIO0     | 4       | 7            |
+
+### LoRa Commands (Programmatic)
 
 ```elixir
-# Connect to LoRa module
-D2dResponder.connect()
+# Connect to LoRa module (RN2903 via USB)
+D2dResponder.LoRa.connect("/dev/ttyACM0")
+
+# Or for Dragino HAT (SX1276 via SPI)
+D2dResponder.LoRaHAT.start_link()
+D2dResponder.LoRaHAT.connect()
 
 # Start beacon mode (transmit periodic messages)
-D2dResponder.beacon()
-D2dResponder.beacon(message: "HELLO", interval: 3000)
+D2dResponder.Beacon.start_beacon()
+D2dResponder.Beacon.start_beacon(message: "HELLO", interval: 3000)
 
 # Start echo mode (receive and echo back)
-D2dResponder.echo()
+D2dResponder.Echo.start_echo()
 
 # Stop modes
-D2dResponder.stop_beacon()
-D2dResponder.stop_echo()
+D2dResponder.Beacon.stop_beacon()
+D2dResponder.Echo.stop_echo()
 
 # Check status
-D2dResponder.status()
+D2dResponder.Echo.status()
+D2dResponder.Beacon.status()
 ```
 
 ## IP Addresses
