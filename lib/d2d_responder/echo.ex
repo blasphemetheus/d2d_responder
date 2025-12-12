@@ -116,7 +116,8 @@ defmodule D2dResponder.Echo do
     if state.running do
       case lora_module().transmit(response) do
         {:ok, _} ->
-          Logger.debug("Echo TX: #{response}")
+          printable = if String.printable?(response), do: response, else: "[binary data]"
+          Logger.debug("Echo TX: #{printable}")
           # Don't start listening here - wait for lora_tx_ok/lora_tx_error
           {:noreply, %{state | tx_count: state.tx_count + 1}}
 
@@ -186,7 +187,9 @@ defmodule D2dResponder.Echo do
 
   defp handle_rx(data, hex, state) do
     if state.running do
-      Logger.info("Echo RX: #{data} (#{hex})")
+      # Use hex for logging to avoid UTF-8 issues with binary data
+      printable = if String.printable?(data), do: data, else: "[binary]"
+      Logger.info("Echo RX: #{printable} (#{hex})")
 
       # Schedule echo with delay to allow sender to switch to RX mode
       response = state.prefix <> data

@@ -49,11 +49,13 @@ defmodule D2dResponder.FileLogger do
 
   @impl true
   def handle_cast({:log, direction, message, hex}, state) do
+    # Use hex representation if message contains non-UTF8 binary data
+    safe_message = if String.printable?(message), do: message, else: "[binary: #{hex}]"
     entry = %{
       timestamp: DateTime.utc_now() |> DateTime.to_iso8601(),
       type: "lora",
       direction: direction,
-      message: message,
+      message: safe_message,
       hex: hex
     }
     write_json(state.file, entry)
