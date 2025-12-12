@@ -15,3 +15,5 @@
 {"message":"ECHO:PING:803","timestamp":"2025-12-12T22:11:37.285962Z","type":"lora","hex":"4543484F3A50494E473A383033","direction":"tx"}
 {"timestamp":"2025-12-12T22:11:37.343973Z","type":"event","event":"tx_ok"}
 {"timestamp":"2025-12-12T22:15:42.889977Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-12T22:20:44.028099Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-12T22:25:45.165960Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
