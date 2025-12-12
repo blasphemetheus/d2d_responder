@@ -89,7 +89,29 @@ defmodule D2dResponder.CLI do
   defp start_tui do
     # Small delay to let services initialize
     Process.sleep(300)
-    TUI.run()
+
+    # Check if stdin is available (iex captures it)
+    case IO.gets("") do
+      {:error, _} ->
+        IO.puts("")
+        IO.puts("═══════════════════════════════════════")
+        IO.puts("  D2D Responder - Services Running")
+        IO.puts("═══════════════════════════════════════")
+        IO.puts("")
+        IO.puts("TUI unavailable (iex captures stdin).")
+        IO.puts("")
+        IO.puts("To use TUI, run:  mix tui")
+        IO.puts("For echo mode:    mix tui --echo")
+        IO.puts("")
+        IO.puts("Or call functions directly in iex:")
+        IO.puts("  D2dResponder.LoRa.connect(\"/dev/ttyACM0\")")
+        IO.puts("  D2dResponder.Echo.start_echo()")
+        IO.puts("")
+
+      _ ->
+        # stdin works, start TUI
+        TUI.run()
+    end
   end
 
   defp print_help do

@@ -114,10 +114,11 @@ defmodule D2dResponder.TUI do
     IO.write(Owl.Data.tag("Select option: ", :cyan) |> Owl.Data.to_chardata())
 
     case IO.gets("") do
-      {:error, reason} ->
-        puts_colored("Input error: #{inspect(reason)}. Try running with: iex --erl \"-noinput\" -S mix", :red)
-        Process.sleep(2000)
-        get_input()
+      {:error, _reason} ->
+        puts_colored("\nStdin not available (iex captures it).", :red)
+        puts_colored("Run with: elixir --erl \"-noinput\" -S mix run --no-halt", :yellow)
+        puts_colored("Or use: mix tui", :yellow)
+        :quit
 
       :eof ->
         :quit
