@@ -1,0 +1,20 @@
+{"timestamp":"2025-12-11T23:01:15.999372Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:03:35.689599Z","type":"event","event":"WIFI_CONNECTED: wlan0 at 192.168.12.1"}
+{"timestamp":"2025-12-11T23:03:41.242536Z","type":"event","event":"BT_SERVER_STARTED: pan0 at 192.168.44.1"}
+{"timestamp":"2025-12-11T23:03:41.268865Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:03:43.485689Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:05:10.269827Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:05:38.093665Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:06:26.253654Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:06:42.967440Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:07:54.038400Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:11:18.858784Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:11:40.778828Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:11:57.362862Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:12:12.058170Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:12:28.942445Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:12:44.201432Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:17:45.355989Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:22:46.515140Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:27:47.587350Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T23:32:48.677123Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}

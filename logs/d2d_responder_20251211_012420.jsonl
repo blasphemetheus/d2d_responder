@@ -1,0 +1,6 @@
+{"timestamp":"2025-12-11T07:24:21.838470Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:29:23.222145Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:34:24.372848Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"message":"BEACON","timestamp":"2025-12-11T07:37:28.619855Z","type":"lora","hex":"424541434F4E","direction":"tx"}
+{"timestamp":"2025-12-11T07:39:25.571657Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:44:26.754338Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}

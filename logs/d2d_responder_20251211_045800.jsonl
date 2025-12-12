@@ -1,0 +1,81 @@
+{"timestamp":"2025-12-11T10:58:00.617093Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"message":"PING:2759","timestamp":"2025-12-11T10:58:30.952268Z","type":"lora","hex":"50494E473A32373539","direction":"rx"}
+{"message":"ECHO:PING:2759","timestamp":"2025-12-11T10:58:30.954454Z","type":"lora","hex":"4543484F3A50494E473A32373539","direction":"tx"}
+{"timestamp":"2025-12-11T10:58:32.126376Z","type":"event","event":"tx_ok"}
+{"message":"PING:196","timestamp":"2025-12-11T10:58:41.471277Z","type":"lora","hex":"50494E473A313936","direction":"rx"}
+{"message":"ECHO:PING:196","timestamp":"2025-12-11T10:58:41.473087Z","type":"lora","hex":"4543484F3A50494E473A313936","direction":"tx"}
+{"timestamp":"2025-12-11T10:58:42.645158Z","type":"event","event":"tx_ok"}
+{"message":"PING:1922","timestamp":"2025-12-11T10:58:51.987730Z","type":"lora","hex":"50494E473A31393232","direction":"rx"}
+{"message":"ECHO:PING:1922","timestamp":"2025-12-11T10:58:51.990203Z","type":"lora","hex":"4543484F3A50494E473A31393232","direction":"tx"}
+{"timestamp":"2025-12-11T10:58:53.163088Z","type":"event","event":"tx_ok"}
+{"message":"PING:421","timestamp":"2025-12-11T10:59:02.504572Z","type":"lora","hex":"50494E473A343231","direction":"rx"}
+{"message":"ECHO:PING:421","timestamp":"2025-12-11T10:59:02.506458Z","type":"lora","hex":"4543484F3A50494E473A343231","direction":"tx"}
+{"timestamp":"2025-12-11T10:59:03.677880Z","type":"event","event":"tx_ok"}
+{"message":"PING:323","timestamp":"2025-12-11T10:59:13.023559Z","type":"lora","hex":"50494E473A333233","direction":"rx"}
+{"message":"ECHO:PING:323","timestamp":"2025-12-11T10:59:13.025853Z","type":"lora","hex":"4543484F3A50494E473A333233","direction":"tx"}
+{"timestamp":"2025-12-11T10:59:14.197222Z","type":"event","event":"tx_ok"}
+{"timestamp":"2025-12-11T10:59:29.302997Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T10:59:44.409073Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T10:59:59.515509Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:00:14.622165Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:00:29.728768Z","type":"event","event":"tx_error"}
+{"message":"PING:136","timestamp":"2025-12-11T11:00:41.447714Z","type":"lora","hex":"50494E473A313336","direction":"rx"}
+{"message":"ECHO:PING:136","timestamp":"2025-12-11T11:00:41.450658Z","type":"lora","hex":"4543484F3A50494E473A313336","direction":"tx"}
+{"timestamp":"2025-12-11T11:00:42.621690Z","type":"event","event":"tx_ok"}
+{"message":"PING:35","timestamp":"2025-12-11T11:00:44.210201Z","type":"lora","hex":"50494E473A3335","direction":"rx"}
+{"message":"ECHO:PING:35","timestamp":"2025-12-11T11:00:44.212384Z","type":"lora","hex":"4543484F3A50494E473A3335","direction":"tx"}
+{"timestamp":"2025-12-11T11:00:45.384055Z","type":"event","event":"tx_ok"}
+{"message":"PING:67","timestamp":"2025-12-11T11:00:46.969851Z","type":"lora","hex":"50494E473A3637","direction":"rx"}
+{"message":"ECHO:PING:67","timestamp":"2025-12-11T11:00:46.972342Z","type":"lora","hex":"4543484F3A50494E473A3637","direction":"tx"}
+{"timestamp":"2025-12-11T11:00:48.143199Z","type":"event","event":"tx_ok"}
+{"message":"PING:134","timestamp":"2025-12-11T11:00:49.727326Z","type":"lora","hex":"50494E473A313334","direction":"rx"}
+{"message":"ECHO:PING:134","timestamp":"2025-12-11T11:00:49.729532Z","type":"lora","hex":"4543484F3A50494E473A313334","direction":"tx"}
+{"timestamp":"2025-12-11T11:00:50.901499Z","type":"event","event":"tx_ok"}
+{"message":"PING:3906","timestamp":"2025-12-11T11:00:52.488802Z","type":"lora","hex":"50494E473A33393036","direction":"rx"}
+{"message":"ECHO:PING:3906","timestamp":"2025-12-11T11:00:52.490598Z","type":"lora","hex":"4543484F3A50494E473A33393036","direction":"tx"}
+{"timestamp":"2025-12-11T11:00:53.663476Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:01.490086Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:01.491840Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:02.498078Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:04.506464Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:04.509434Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:05.515147Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:07.521762Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:07.523555Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:08.529074Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:10.536674Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:10.538577Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:11.544482Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:13.551736Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:13.553879Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:14.559251Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:16.566533Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:16.569143Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:17.574162Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:19.581341Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:19.583029Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:20.588776Z","type":"event","event":"tx_ok"}
+{"message":"PING","timestamp":"2025-12-11T11:01:22.596411Z","type":"lora","hex":"50494E47","direction":"rx"}
+{"message":"ECHO:PING","timestamp":"2025-12-11T11:01:22.598468Z","type":"lora","hex":"4543484F3A50494E47","direction":"tx"}
+{"timestamp":"2025-12-11T11:01:23.603651Z","type":"event","event":"tx_ok"}
+{"timestamp":"2025-12-11T11:01:38.708794Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:01:53.815164Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:02:08.921694Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:02:24.028390Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:02:39.134540Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:02:54.241051Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:03:01.755480Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T11:03:09.347439Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:03:24.454931Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:03:39.568818Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:03:54.675418Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:04:09.782171Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:04:26.322763Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:04:41.432160Z","type":"event","event":"tx_error"}
+{"timestamp":"2025-12-11T11:08:02.892137Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T11:12:19.909275Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T11:12:22.127093Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T11:12:24.313728Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T11:12:26.513486Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T11:12:28.751916Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T11:12:31.019588Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}

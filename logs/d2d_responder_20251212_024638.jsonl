@@ -1,0 +1,3 @@
+{"timestamp":"2025-12-12T08:46:39.263418Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-12T08:51:40.375843Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-12T08:56:41.512435Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}

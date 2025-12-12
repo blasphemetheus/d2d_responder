@@ -1,0 +1,5 @@
+{"timestamp":"2025-12-11T04:38:14.710186Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T04:42:10.751715Z","type":"event","event":"WIFI_CONNECTED: wlan0 at 192.168.12.1"}
+{"timestamp":"2025-12-11T04:42:16.264255Z","type":"event","event":"BT_SERVER_STARTED: pan0 at 192.168.44.1"}
+{"timestamp":"2025-12-11T04:48:52.458380Z","type":"event","event":"WIFI_RESET: NetworkManager restored"}
+{"timestamp":"2025-12-11T04:48:53.512795Z","type":"event","event":"BT_RESET: Bluetooth service restarted"}

@@ -1,0 +1,13 @@
+{"timestamp":"2025-12-12T21:38:03.612972Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"message":"HELLO","timestamp":"2025-12-12T21:39:31.923833Z","type":"lora","hex":"48454C4C4F","direction":"tx"}
+{"timestamp":"2025-12-12T21:39:31.958264Z","type":"event","event":"tx_ok"}
+{"message":"HELLO","timestamp":"2025-12-12T21:39:49.639263Z","type":"lora","hex":"48454C4C4F","direction":"tx"}
+{"timestamp":"2025-12-12T21:39:49.673812Z","type":"event","event":"tx_ok"}
+{"message":"HELLO","timestamp":"2025-12-12T21:39:56.247171Z","type":"lora","hex":"48454C4C4F","direction":"tx"}
+{"timestamp":"2025-12-12T21:39:56.281370Z","type":"event","event":"tx_ok"}
+{"message":"HELLO","timestamp":"2025-12-12T21:41:52.616628Z","type":"lora","hex":"48454C4C4F","direction":"tx"}
+{"timestamp":"2025-12-12T21:41:52.651195Z","type":"event","event":"tx_ok"}
+{"message":"HELLO","timestamp":"2025-12-12T21:42:30.611137Z","type":"lora","hex":"48454C4C4F","direction":"tx"}
+{"timestamp":"2025-12-12T21:42:30.647802Z","type":"event","event":"tx_ok"}
+{"timestamp":"2025-12-12T21:43:04.635760Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-12T21:48:05.706320Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}

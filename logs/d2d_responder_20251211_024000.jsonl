@@ -1,0 +1,2 @@
+{"timestamp":"2025-12-11T08:40:02.172822Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"message":"BEACON","timestamp":"2025-12-11T08:41:38.833849Z","type":"lora","hex":"424541434F4E","direction":"tx"}

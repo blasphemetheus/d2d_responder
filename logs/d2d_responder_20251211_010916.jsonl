@@ -1,0 +1,11 @@
+{"timestamp":"2025-12-11T07:09:18.048018Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:09:33.689009Z","type":"event","event":"WIFI_CONNECTED: wlan0 at 192.168.12.1"}
+{"timestamp":"2025-12-11T07:09:39.227126Z","type":"event","event":"BT_SERVER_STARTED: pan0 at 192.168.44.1"}
+{"timestamp":"2025-12-11T07:09:39.287117Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:09:41.410520Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:14:42.490377Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:14:49.513242Z","type":"event","event":"WIFI_RESET: NetworkManager restored"}
+{"timestamp":"2025-12-11T07:14:50.354547Z","type":"event","event":"BT_RESET: Bluetooth service restarted"}
+{"timestamp":"2025-12-11T07:14:50.359191Z","type":"event","event":"IPERF_SERVER_STOPPED"}
+{"timestamp":"2025-12-11T07:14:50.364734Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-11T07:14:52.593794Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}

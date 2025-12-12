@@ -1,0 +1,7 @@
+{"timestamp":"2025-12-12T21:25:31.767901Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"message":"TEST123","timestamp":"2025-12-12T21:27:38.523468Z","type":"lora","hex":"54455354313233","direction":"tx"}
+{"timestamp":"2025-12-12T21:27:38.557793Z","type":"event","event":"tx_ok"}
+{"message":"TEST123","timestamp":"2025-12-12T21:30:02.395972Z","type":"lora","hex":"54455354313233","direction":"tx"}
+{"timestamp":"2025-12-12T21:30:02.430491Z","type":"event","event":"tx_ok"}
+{"timestamp":"2025-12-12T21:30:32.884619Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-12T21:35:33.976381Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}

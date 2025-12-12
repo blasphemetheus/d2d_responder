@@ -1,0 +1,24 @@
+{"timestamp":"2025-12-12T21:51:29.086250Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-12T21:56:30.114400Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"message":"HELLO","timestamp":"2025-12-12T22:00:28.907536Z","type":"lora","hex":"48454C4C4F","direction":"rx"}
+{"timestamp":"2025-12-12T22:01:31.251346Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"message":"TEST123","timestamp":"2025-12-12T22:02:47.792196Z","type":"lora","hex":"54455354313233","direction":"tx"}
+{"timestamp":"2025-12-12T22:02:47.838072Z","type":"event","event":"tx_ok"}
+{"message":"TEST123","timestamp":"2025-12-12T22:02:53.988177Z","type":"lora","hex":"54455354313233","direction":"tx"}
+{"timestamp":"2025-12-12T22:02:54.033881Z","type":"event","event":"tx_ok"}
+{"message":"PING:2406","timestamp":"2025-12-12T22:03:48.819494Z","type":"lora","hex":"50494E473A32343036","direction":"rx"}
+{"message":"ECHO:PING:2406","timestamp":"2025-12-12T22:03:48.821059Z","type":"lora","hex":"4543484F3A50494E473A32343036","direction":"tx"}
+{"timestamp":"2025-12-12T22:03:48.875084Z","type":"event","event":"tx_ok"}
+{"message":"PING:2534","timestamp":"2025-12-12T22:04:04.339652Z","type":"lora","hex":"50494E473A32353334","direction":"rx"}
+{"message":"ECHO:PING:2534","timestamp":"2025-12-12T22:04:04.341504Z","type":"lora","hex":"4543484F3A50494E473A32353334","direction":"tx"}
+{"timestamp":"2025-12-12T22:04:04.396516Z","type":"event","event":"tx_ok"}
+{"message":"PING:2915","timestamp":"2025-12-12T22:04:04.970793Z","type":"lora","hex":"50494E473A32393135","direction":"rx"}
+{"message":"ECHO:PING:2915","timestamp":"2025-12-12T22:04:04.971632Z","type":"lora","hex":"4543484F3A50494E473A32393135","direction":"tx"}
+{"timestamp":"2025-12-12T22:04:05.029732Z","type":"event","event":"tx_ok"}
+{"message":"PING:2598","timestamp":"2025-12-12T22:04:20.488210Z","type":"lora","hex":"50494E473A32353938","direction":"rx"}
+{"message":"ECHO:PING:2598","timestamp":"2025-12-12T22:04:20.489803Z","type":"lora","hex":"4543484F3A50494E473A32353938","direction":"tx"}
+{"timestamp":"2025-12-12T22:04:20.543153Z","type":"event","event":"tx_ok"}
+{"message":"PING:4260","timestamp":"2025-12-12T22:04:21.114125Z","type":"lora","hex":"50494E473A34323630","direction":"rx"}
+{"message":"ECHO:PING:4260","timestamp":"2025-12-12T22:04:21.115238Z","type":"lora","hex":"4543484F3A50494E473A34323630","direction":"tx"}
+{"timestamp":"2025-12-12T22:04:21.172767Z","type":"event","event":"tx_ok"}
+{"timestamp":"2025-12-12T22:06:32.295420Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
