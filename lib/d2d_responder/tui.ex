@@ -112,16 +112,25 @@ defmodule D2dResponder.TUI do
 
   defp get_input do
     IO.write(Owl.Data.tag("Select option: ", :cyan) |> Owl.Data.to_chardata())
-    input =
-      IO.gets("")
-      |> String.trim()
-      |> String.downcase()
 
-    case Enum.find(@menu_items, fn {key, _, _} -> key == input end) do
-      {_, _, action} -> action
-      nil ->
-        puts_colored("Invalid option, try again.", :red)
+    case IO.gets("") do
+      {:error, reason} ->
+        puts_colored("Input error: #{inspect(reason)}. Try running with: iex --erl \"-noinput\" -S mix", :red)
+        Process.sleep(2000)
         get_input()
+
+      :eof ->
+        :quit
+
+      input when is_binary(input) ->
+        input = input |> String.trim() |> String.downcase()
+
+        case Enum.find(@menu_items, fn {key, _, _} -> key == input end) do
+          {_, _, action} -> action
+          nil ->
+            puts_colored("Invalid option, try again.", :red)
+            get_input()
+        end
     end
   end
 
