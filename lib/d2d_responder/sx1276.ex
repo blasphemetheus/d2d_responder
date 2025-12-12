@@ -165,8 +165,10 @@ defmodule D2dResponder.SX1276 do
   def init(opts) do
     spi_bus = Keyword.get(opts, :spi_bus, "spidev0.0")
     spi_speed = Keyword.get(opts, :spi_speed, 8_000_000)
-    reset_pin = Keyword.get(opts, :reset_pin, 25)
+    reset_pin = Keyword.get(opts, :reset_pin, 17)
     dio0_pin = Keyword.get(opts, :dio0_pin, 4)
+    # Dragino HAT uses GPIO25 for CS instead of standard CE0/CE1
+    cs_pin = Keyword.get(opts, :cs_pin, 25)
 
     state = %{
       spi: nil,
@@ -174,6 +176,8 @@ defmodule D2dResponder.SX1276 do
       spi_speed: spi_speed,
       reset_pin: reset_pin,
       reset_gpio: nil,
+      cs_pin: cs_pin,
+      cs_gpio: nil,
       dio0_pin: dio0_pin,
       dio0_gpio: nil,
       connected: false,
@@ -338,13 +342,17 @@ defmodule D2dResponder.SX1276 do
   # Private functions
 
   defp do_begin(frequency, state) do
-    Logger.info("SX1276: Initializing on #{state.spi_bus}, reset=GPIO#{state.reset_pin}, DIO0=GPIO#{state.dio0_pin}")
+    Logger.info("SX1276: Initializing on #{state.spi_bus}, reset=GPIO#{state.reset_pin}, CS=GPIO#{state.cs_pin}, DIO0=GPIO#{state.dio0_pin}")
 
     with {:ok, spi} <- Circuits.SPI.open(state.spi_bus, speed_hz: state.spi_speed, mode: 0),
          {:ok, reset_gpio} <- Circuits.GPIO.open(state.reset_pin, :output),
+         {:ok, cs_gpio} <- Circuits.GPIO.open(state.cs_pin, :output),
          {:ok, dio0_gpio} <- Circuits.GPIO.open(state.dio0_pin, :input) do
 
-      state = %{state | spi: spi, reset_gpio: reset_gpio, dio0_gpio: dio0_gpio}
+      # CS starts high (deselected)
+      Circuits.GPIO.write(cs_gpio, 1)
+
+      state = %{state | spi: spi, reset_gpio: reset_gpio, cs_gpio: cs_gpio, dio0_gpio: dio0_gpio}
 
       # Hardware reset
       Circuits.GPIO.write(reset_gpio, 0)
@@ -358,6 +366,11 @@ defmodule D2dResponder.SX1276 do
 
       if version != 0x12 do
         Logger.error("SX1276: Invalid version 0x#{Integer.to_string(version, 16)}, expected 0x12")
+        # Clean up on failure
+        Circuits.GPIO.close(reset_gpio)
+        Circuits.GPIO.close(cs_gpio)
+        Circuits.GPIO.close(dio0_gpio)
+        Circuits.SPI.close(spi)
         {:error, :invalid_chip}
       else
         # Set up DIO0 interrupt
@@ -596,11 +609,25 @@ defmodule D2dResponder.SX1276 do
   end
 
   defp read_register(addr, state) do
+    # Toggle CS for Dragino HAT (GPIO25)
+    if state.cs_gpio do
+      Circuits.GPIO.write(state.cs_gpio, 0)
+    end
     {:ok, <<_sent, value>>} = Circuits.SPI.transfer(state.spi, <<addr &&& 0x7F, 0x00>>)
+    if state.cs_gpio do
+      Circuits.GPIO.write(state.cs_gpio, 1)
+    end
     value
   end
 
   defp write_register(addr, value, state) do
+    # Toggle CS for Dragino HAT (GPIO25)
+    if state.cs_gpio do
+      Circuits.GPIO.write(state.cs_gpio, 0)
+    end
     Circuits.SPI.transfer(state.spi, <<(addr ||| 0x80), value>>)
+    if state.cs_gpio do
+      Circuits.GPIO.write(state.cs_gpio, 1)
+    end
   end
 end
