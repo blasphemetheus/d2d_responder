@@ -111,13 +111,13 @@ defmodule D2dResponder.TUI do
   end
 
   defp get_input do
-    IO.write(Owl.Data.tag("Select option: ", :cyan) |> Owl.Data.to_chardata())
+    # Use IO.gets with prompt directly - works better with iex
+    prompt = Owl.Data.tag("Select option: ", :cyan) |> Owl.Data.to_chardata() |> IO.iodata_to_binary()
 
-    case IO.gets("") do
+    case IO.gets(prompt) do
       {:error, _reason} ->
-        puts_colored("\nStdin not available (iex captures it).", :red)
-        puts_colored("Run with: elixir --erl \"-noinput\" -S mix run --no-halt", :yellow)
-        puts_colored("Or use: mix tui", :yellow)
+        puts_colored("\nStdin not available.", :red)
+        puts_colored("Try: mix tui", :yellow)
         :quit
 
       :eof ->
