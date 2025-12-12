@@ -111,20 +111,6 @@ defmodule D2dResponder.Echo do
     handle_rx(data, hex, state)
   end
 
-  defp handle_rx(data, hex, state) do
-    if state.running do
-      Logger.info("Echo RX: #{data} (#{hex})")
-
-      # Schedule echo with delay to allow sender to switch to RX mode
-      response = state.prefix <> data
-      Process.send_after(self(), {:do_echo, response}, @echo_delay_ms)
-
-      {:noreply, %{state | rx_count: state.rx_count + 1}}
-    else
-      {:noreply, state}
-    end
-  end
-
   @impl true
   def handle_info({:do_echo, response}, state) do
     if state.running do
@@ -197,6 +183,20 @@ defmodule D2dResponder.Echo do
   end
 
   # Private
+
+  defp handle_rx(data, hex, state) do
+    if state.running do
+      Logger.info("Echo RX: #{data} (#{hex})")
+
+      # Schedule echo with delay to allow sender to switch to RX mode
+      response = state.prefix <> data
+      Process.send_after(self(), {:do_echo, response}, @echo_delay_ms)
+
+      {:noreply, %{state | rx_count: state.rx_count + 1}}
+    else
+      {:noreply, state}
+    end
+  end
 
   defp start_listening do
     # Small delay before starting RX to let TX complete

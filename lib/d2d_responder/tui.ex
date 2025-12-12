@@ -249,72 +249,6 @@ defmodule D2dResponder.TUI do
     end
   end
 
-  defp connect_rn2903(name) do
-    puts_colored("\nConnecting to #{name}...", :cyan)
-    IO.write("  Opening /dev/ttyACM0... ")
-
-    case LoRa.connect("/dev/ttyACM0") do
-      :ok ->
-        puts_colored("✓", :green)
-        # Store active backend
-        Application.put_env(:d2d_responder, :lora_backend, :rn2903)
-        # Give the module time to initialize after connect
-        Process.sleep(500)
-        # pause_mac can be slow - try it but don't fail if it times out
-        IO.write("  Pausing MAC layer... ")
-        try do
-          case LoRa.send_command("mac pause", 5_000) do
-            {:ok, response} ->
-              puts_colored("✓ (#{response})", :green)
-            {:error, :timeout} ->
-              puts_colored("timeout (may already be paused)", :yellow)
-            {:error, reason} ->
-              puts_colored("#{inspect(reason)}", :yellow)
-          end
-        catch
-          :exit, {:timeout, _} ->
-            puts_colored("timeout (may already be paused)", :yellow)
-          :exit, reason ->
-            puts_colored("exit: #{inspect(reason)}", :yellow)
-        end
-        puts_colored("LoRa ready (RN2903).", :green)
-
-      {:error, reason} ->
-        puts_colored("✗", :red)
-        puts_colored("LoRa connect failed: #{inspect(reason)}", :red)
-    end
-  end
-
-  defp connect_sx1276(name) do
-    puts_colored("\nConnecting to #{name}...", :cyan)
-
-    # Ensure the HAT GenServer is started
-    case ensure_lora_hat_started() do
-      :ok ->
-        IO.write("  Initializing SX1276 via SPI... ")
-        case LoRaHAT.connect() do
-          :ok ->
-            puts_colored("✓", :green)
-            Application.put_env(:d2d_responder, :lora_backend, :sx1276)
-            puts_colored("LoRa ready (Dragino HAT).", :green)
-
-          {:error, :invalid_chip} ->
-            puts_colored("✗", :red)
-            puts_colored("SX1276 not detected. Check:", :red)
-            puts_colored("  - SPI enabled: sudo raspi-config -> Interface Options -> SPI", :yellow)
-            puts_colored("  - HAT seated properly on GPIO header", :yellow)
-            puts_colored("  - Check dmesg for SPI errors", :yellow)
-
-          {:error, reason} ->
-            puts_colored("✗", :red)
-            puts_colored("LoRa HAT connect failed: #{inspect(reason)}", :red)
-        end
-
-      {:error, reason} ->
-        puts_colored("Failed to start LoRaHAT: #{inspect(reason)}", :red)
-    end
-  end
-
   defp execute_action(:lora_reset) do
     backend = Application.get_env(:d2d_responder, :lora_backend, :none)
     puts_colored("\nResetting LoRa hardware...", :cyan)
@@ -344,30 +278,6 @@ defmodule D2dResponder.TUI do
       _ ->
         puts_colored("No LoRa backend connected.", :yellow)
     end
-  end
-
-  defp ensure_lora_hat_started do
-    case Process.whereis(LoRaHAT) do
-      nil ->
-        case LoRaHAT.start_link() do
-          {:ok, _pid} -> :ok
-          {:error, {:already_started, _pid}} -> :ok
-          error -> error
-        end
-      _pid -> :ok
-    end
-  end
-
-  # Helper to get the current LoRa backend module
-  defp lora_module do
-    case Application.get_env(:d2d_responder, :lora_backend, :rn2903) do
-      :sx1276 -> LoRaHAT
-      _ -> LoRa
-    end
-  end
-
-  defp lora_connected? do
-    lora_module().connected?()
   end
 
   defp execute_action(:lora_echo) do
@@ -493,6 +403,100 @@ defmodule D2dResponder.TUI do
     IO.puts("\niperf3 Server:")
     IO.puts("  Running: #{iperf.running}")
     IO.puts("  Port: #{iperf.port || "N/A"}")
+  end
+
+  # ============================================
+  # LoRa Connection Helpers
+  # ============================================
+
+  defp connect_rn2903(name) do
+    puts_colored("\nConnecting to #{name}...", :cyan)
+    IO.write("  Opening /dev/ttyACM0... ")
+
+    case LoRa.connect("/dev/ttyACM0") do
+      :ok ->
+        puts_colored("✓", :green)
+        # Store active backend
+        Application.put_env(:d2d_responder, :lora_backend, :rn2903)
+        # Give the module time to initialize after connect
+        Process.sleep(500)
+        # pause_mac can be slow - try it but don't fail if it times out
+        IO.write("  Pausing MAC layer... ")
+        try do
+          case LoRa.send_command("mac pause", 5_000) do
+            {:ok, response} ->
+              puts_colored("✓ (#{response})", :green)
+            {:error, :timeout} ->
+              puts_colored("timeout (may already be paused)", :yellow)
+            {:error, reason} ->
+              puts_colored("#{inspect(reason)}", :yellow)
+          end
+        catch
+          :exit, {:timeout, _} ->
+            puts_colored("timeout (may already be paused)", :yellow)
+          :exit, reason ->
+            puts_colored("exit: #{inspect(reason)}", :yellow)
+        end
+        puts_colored("LoRa ready (RN2903).", :green)
+
+      {:error, reason} ->
+        puts_colored("✗", :red)
+        puts_colored("LoRa connect failed: #{inspect(reason)}", :red)
+    end
+  end
+
+  defp connect_sx1276(name) do
+    puts_colored("\nConnecting to #{name}...", :cyan)
+
+    # Ensure the HAT GenServer is started
+    case ensure_lora_hat_started() do
+      :ok ->
+        IO.write("  Initializing SX1276 via SPI... ")
+        case LoRaHAT.connect() do
+          :ok ->
+            puts_colored("✓", :green)
+            Application.put_env(:d2d_responder, :lora_backend, :sx1276)
+            puts_colored("LoRa ready (Dragino HAT).", :green)
+
+          {:error, :invalid_chip} ->
+            puts_colored("✗", :red)
+            puts_colored("SX1276 not detected. Check:", :red)
+            puts_colored("  - SPI enabled: sudo raspi-config -> Interface Options -> SPI", :yellow)
+            puts_colored("  - HAT seated properly on GPIO header", :yellow)
+            puts_colored("  - Check dmesg for SPI errors", :yellow)
+
+          {:error, reason} ->
+            puts_colored("✗", :red)
+            puts_colored("LoRa HAT connect failed: #{inspect(reason)}", :red)
+        end
+
+      {:error, reason} ->
+        puts_colored("Failed to start LoRaHAT: #{inspect(reason)}", :red)
+    end
+  end
+
+  defp ensure_lora_hat_started do
+    case Process.whereis(LoRaHAT) do
+      nil ->
+        case LoRaHAT.start_link() do
+          {:ok, _pid} -> :ok
+          {:error, {:already_started, _pid}} -> :ok
+          error -> error
+        end
+      _pid -> :ok
+    end
+  end
+
+  # Helper to get the current LoRa backend module
+  defp lora_module do
+    case Application.get_env(:d2d_responder, :lora_backend, :rn2903) do
+      :sx1276 -> LoRaHAT
+      _ -> LoRa
+    end
+  end
+
+  defp lora_connected? do
+    lora_module().connected?()
   end
 
   defp lora_raw_loop do

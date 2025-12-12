@@ -64,6 +64,22 @@ defmodule D2dResponder.LoRa do
     GenServer.call(__MODULE__, :connected?)
   end
 
+  def get_radio_settings do
+    with {:ok, freq} <- send_command("radio get freq"),
+         {:ok, sf} <- send_command("radio get sf"),
+         {:ok, bw} <- send_command("radio get bw"),
+         {:ok, pwr} <- send_command("radio get pwr"),
+         {:ok, cr} <- send_command("radio get cr") do
+      {:ok, %{
+        frequency: freq,
+        spreading_factor: sf,
+        bandwidth: bw,
+        power: pwr,
+        coding_rate: cr
+      }}
+    end
+  end
+
   def subscribe(pid) do
     GenServer.call(__MODULE__, {:subscribe, pid})
   end

@@ -24,22 +24,22 @@ defmodule D2dResponder.SX1276 do
   @reg_fifo_tx_base_addr 0x0E
   @reg_fifo_rx_base_addr 0x0F
   @reg_fifo_rx_current   0x10
-  @reg_irq_flags_mask    0x11
+  # @reg_irq_flags_mask    0x11  # Unused
   @reg_irq_flags         0x12
   @reg_rx_nb_bytes       0x13
   @reg_pkt_snr_value     0x19
   @reg_pkt_rssi_value    0x1A
   @reg_modem_config_1    0x1D
   @reg_modem_config_2    0x1E
-  @reg_symb_timeout_lsb  0x1F
+  # @reg_symb_timeout_lsb  0x1F  # Unused
   @reg_preamble_msb      0x20
   @reg_preamble_lsb      0x21
   @reg_payload_length    0x22
   @reg_modem_config_3    0x26
-  @reg_freq_error_msb    0x28
-  @reg_freq_error_mid    0x29
-  @reg_freq_error_lsb    0x2A
-  @reg_rssi_wideband     0x2C
+  # @reg_freq_error_msb    0x28  # Unused
+  # @reg_freq_error_mid    0x29  # Unused
+  # @reg_freq_error_lsb    0x2A  # Unused
+  # @reg_rssi_wideband     0x2C  # Unused
   @reg_detection_opt     0x31
   @reg_detection_thresh  0x37
   @reg_sync_word         0x39
