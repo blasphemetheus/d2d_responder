@@ -177,7 +177,7 @@ defmodule D2dResponder.LoRaHAT do
   @impl true
   def handle_call(:disconnect, _from, state) do
     if state.connected do
-      SX1276.sleep()
+      SX1276.disconnect()
     end
     {:reply, :ok, %{state | connected: false}}
   end

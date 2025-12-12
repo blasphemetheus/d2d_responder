@@ -129,6 +129,13 @@ defmodule D2dResponder.SX1276 do
   end
 
   @doc """
+  Disconnect and release all GPIO/SPI resources.
+  """
+  def disconnect do
+    GenServer.call(__MODULE__, :disconnect)
+  end
+
+  @doc """
   Hardware reset via GPIO reset pin. Toggles low then high.
   """
   def hardware_reset do
@@ -262,6 +269,24 @@ defmodule D2dResponder.SX1276 do
   def handle_call(:sleep, _from, %{connected: true} = state) do
     set_mode(@mode_lora ||| @mode_sleep, state)
     {:reply, :ok, %{state | rx_mode: false}}
+  end
+
+  @impl true
+  def handle_call(:disconnect, _from, state) do
+    Logger.info("SX1276: Disconnecting and releasing resources")
+    # Close all handles
+    if state.reset_gpio, do: Circuits.GPIO.close(state.reset_gpio)
+    if state.cs_gpio, do: Circuits.GPIO.close(state.cs_gpio)
+    if state.dio0_gpio, do: Circuits.GPIO.close(state.dio0_gpio)
+    if state.spi, do: Circuits.SPI.close(state.spi)
+    {:reply, :ok, %{state |
+      connected: false,
+      rx_mode: false,
+      spi: nil,
+      reset_gpio: nil,
+      cs_gpio: nil,
+      dio0_gpio: nil
+    }}
   end
 
   @impl true
