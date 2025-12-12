@@ -50,6 +50,16 @@ defmodule D2dResponder.Echo do
       {:reply, {:error, :already_running}, state}
     else
       prefix = Keyword.get(opts, :prefix, state.prefix)
+      backend = Application.get_env(:d2d_responder, :lora_backend, :rn2903)
+
+      # Log current radio settings for debugging
+      Logger.info("Echo: Starting with backend=#{backend}, prefix='#{prefix}'")
+      case lora_module().get_radio_settings() do
+        {:ok, settings} ->
+          Logger.info("Echo: Radio settings: #{inspect(settings)}")
+        _ ->
+          Logger.warning("Echo: Could not read radio settings")
+      end
 
       # Subscribe to LoRa RX events from the active backend
       lora_module().subscribe(self())
@@ -57,7 +67,7 @@ defmodule D2dResponder.Echo do
       # Start continuous RX mode
       start_listening()
 
-      Logger.info("Echo mode started with prefix '#{prefix}'")
+      Logger.info("Echo mode started - waiting for packets...")
 
       {:reply, :ok, %{state | running: true, prefix: prefix, rx_count: 0, tx_count: 0}}
     end
@@ -156,12 +166,15 @@ defmodule D2dResponder.Echo do
   @impl true
   def handle_info(:do_start_rx, state) do
     if state.running do
+      backend = Application.get_env(:d2d_responder, :lora_backend, :rn2903)
+      Logger.info("Echo: entering RX mode (backend=#{backend}, rx_count=#{state.rx_count}, tx_count=#{state.tx_count})")
+
       case lora_module().receive_mode(0) do
         {:ok, _} ->
-          Logger.debug("Echo: listening...")
+          Logger.info("Echo: now listening for packets...")
 
         :ok ->
-          Logger.debug("Echo: listening...")
+          Logger.info("Echo: now listening for packets...")
 
         {:error, reason} ->
           Logger.warning("Echo: failed to start RX: #{inspect(reason)}")
