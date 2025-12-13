@@ -1,0 +1,6 @@
+{"timestamp":"2025-12-13T01:29:06.301376Z","type":"event","event":"IPERF_SERVER_STARTED: port 5201"}
+{"timestamp":"2025-12-13T01:37:14.216987Z","type":"event","event":"WIFI_CONNECTED: wlan0 at 192.168.12.1"}
+{"timestamp":"2025-12-13T01:54:21.576096Z","type":"event","event":"WIFI_DISCONNECTED: wlan0"}
+{"timestamp":"2025-12-13T01:54:39.948180Z","type":"event","event":"BT_SERVER_STARTED: pan0 at 192.168.44.1"}
+{"timestamp":"2025-12-13T02:05:06.779959Z","type":"event","event":"BT_SERVER_STOPPED"}
+{"timestamp":"2025-12-13T02:05:17.853067Z","type":"event","event":"BT_SERVER_STARTED: pan0 at 192.168.44.1"}
